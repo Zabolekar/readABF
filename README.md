@@ -19,4 +19,4 @@ plot(data.vs.time(r))
 
 ## Difference from other packages
 
-By "other packages" we mean `abf2` by Matthew Caldwell. While `abf2` only aims to read ABF2 files created by pClamp 10 and newer, we also aim to support ABF files created by pClamp 9 and older, especially ABF version 1.83.
+By "other packages" we mean [abf2](https://cran.r-project.org/web/packages/abf2/index.html) by Matthew Caldwell. While `abf2` only aims to read ABF2 files created by pClamp 10 and newer, we also aim to support ABF files created by pClamp 9 and older, especially ABF version 1.83.
