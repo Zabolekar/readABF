@@ -779,8 +779,8 @@ readABF <- function (filename) {
 
 }
 
-
 # this function should be applied to the return value of readABF
+# it produces a data frame that can be plotted
 data.vs.time <- function (r, columns=c(1,2)) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
    si <- r$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
