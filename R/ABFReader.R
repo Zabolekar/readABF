@@ -416,7 +416,7 @@ readABF <- function (filename) {
    }
 
    headOffset <- header$lDataSectionPtr*BLOCKSIZE + header$nNumPointsIgnored*dataSz
-   # h.fADCSampleInterval is the TOTAL sampling interval
+   # header$fADCSampleInterval is the TOTAL sampling interval
    header$si <- header$fADCSampleInterval * header$nADCNumChannels
    # assign same value to si, which is an output variable
    si <- header$si
@@ -437,7 +437,7 @@ readABF <- function (filename) {
       header$synchArrTimeBase <- header$fSynchTimeUnit
    }
 
-   # read in the TagSection, do a few computations & write to h.tags
+   # read in the TagSection, do a few computations & write to header$tags
    header$tags <- list()   
    if (sections$TagSection$llNumEntries > 0) {
       tmp <- list()
@@ -508,7 +508,7 @@ readABF <- function (filename) {
                   warning("something went wrong reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]], " points should have been read, ", n, " points actually read")
                }
                header$dataPtsPerChan <- n/header$nADCNumChannels
-               if (n %% header.nADCNumChannels > 0) {
+               if (n %% header$nADCNumChannels > 0) {
                   close(f)
                   stop("number of data points in episode not OK")
                }
@@ -555,11 +555,11 @@ readABF <- function (filename) {
          stop("something went wrong positioning file pointer to Synch Array Section")
       })
       synchArr <- int32(header$lSynchArraySize*2)
-      if (length(synchArr) != h.lSynchArraySize*2) {
+      if (length(synchArr) != header$lSynchArraySize*2) {
          close(f)
          stop("something went wrong reading synch array section")
       }
-      # make synchArr a h.lSynchArraySize x 2 matrix
+      # make synchArr a header$lSynchArraySize x 2 matrix
       synchArr <- t(matrix(synchArr, nrow=2))
       if (length(unique(synchArr[,2])) > 1) {
         close(f)
@@ -574,7 +574,7 @@ readABF <- function (filename) {
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
       tmpvar <- header$sweepStartInPts[length(header$sweepStartInPts)]
-      h.recTime <- h.recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*header$nADCNumChannels)
+      header$recTime <- header$recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*header$nADCNumChannels)
       # determine first point and number of points to be read
       startPt <- 0
       header$dataPts <- header$lActualAcqLength
@@ -678,7 +678,7 @@ readABF <- function (filename) {
                close(f)
                stop("something went wrong positioning file pointer (too few data points ?)")
             })
-            # read, skipping h.nADCNumChannels-1 data points after each read
+            # read, skipping header$nADCNumChannels-1 data points after each read
             d <- c()
             for (i in 1:header$dataPtsPerChan) {
                d <- c(d, list(int16=int16, float32=float32)[[precision]](1))
@@ -705,7 +705,7 @@ readABF <- function (filename) {
             restPts <- header$dataPts - nChunk*chunkPts
             restPtsPerChan <- restPts/header$nADCNumChannels
             # chunkwise row indices into d
-            dix <- seq(1, h.dataPtsPerChan, by=chunkPtsPerChan)
+            dix <- seq(1, header$dataPtsPerChan, by=chunkPtsPerChan)
             dix <- cbind(dix, dix+chunkPtsPerChan-1)
             dix[nrow(dix),2] <- header$dataPtsPerChan
             if (verbose && nChunk) {
@@ -781,11 +781,11 @@ readABF <- function (filename) {
 
 # this function should be applied to the return value of readABF
 # it produces a data frame that can be plotted
-data.vs.time <- function (r, columns=c(1,2)) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
+data.vs.time <- function (r, current=1, voltage=2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
    si <- r$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
    data.frame(
       time = seq(0, by = si, length.out = nrow(r$data)),
-      data = r$data[,columns[1]]/r$data[,columns[2]] # unit: nanoSiemens
+      data = r$data[,current]/r$data[,voltage] # unit: nanoSiemens
    )
 }
