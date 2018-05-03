@@ -11,12 +11,12 @@
 # TODO: copy some comments from matlab to here
 
 # defaults:
-# gap-free
+# gap-free:
 whereStart <- 0.0
 whereStop <- "e"
-# episodic
+# episodic:
 sweeps <- "a" # "a" means all
-# general
+# general:
 channels <- "a" # TODO: means "all". As stated in the comments, this flag is currently always the same, so maybe get rid of it alltogether
 # the size of data chunks (see above) in Mb. 0.05 Mb is an empirical value # TODO: Mb or MB?
 # which works well for abf with 6-16 channels and recording durations of 
@@ -37,7 +37,7 @@ readCharDontTruncate <- function (con, nchars) {
    # sadly, our result still can't contain null (it is not allowed in R strings)
    # so we split it into multiple strings
    chars <- readChar(con, rep(1, nchars), useBytes=TRUE)
-   
+
    one_small_string <- ""
    small_strings <- c()
    for (char in chars) {
@@ -50,11 +50,13 @@ readCharDontTruncate <- function (con, nchars) {
          one_small_string <- paste0(one_small_string, char)
       }
    }
-   
+
    small_strings
 }
 
 readABF <- function (filename) {
+
+   fileSz <- file.size(filename)
 
    f <- file(filename, open="rb")
    header <- list()
@@ -470,7 +472,7 @@ readABF <- function (filename) {
          header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
          # before reading Synch Arr parameters check if file is big enough to hold them
          # 4 bytes/long, 2 values per episode (start and length)
-         if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) { # TODO: if something weird happens here and in the analogous place below, think about < and > both here and there
+         if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
             close(f)
             stop("file seems not to contain complete Synch Array Section")
          }
@@ -597,7 +599,8 @@ readABF <- function (filename) {
          for (i in 1:nSweeps) {
             seek(f, selectedSegStartInPts[i])
             tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
-            if (length(tmpd) != dataPtsPerSweep) {
+            n <- length(tmpd)
+            if (n != dataPtsPerSweep) {
                close(f)
                stop("something went wrong reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read, ", n, " points actually read")
             }
@@ -684,7 +687,8 @@ readABF <- function (filename) {
                d <- c(d, list(int16=int16, float32=float32)[[precision]](1))
                skip(dataSz*(header$nADCNumChannels-1))
             }
-            if (length(d) != header$dataPtsPerChan) {
+            n <- length(d)
+            if (n != header$dataPtsPerChan) {
                close(f)
                stop("something went wrong reading file (", header$dataPtsPerChan, " points should have been read, ", n, " points actually read")
             }
@@ -716,7 +720,8 @@ readABF <- function (filename) {
             # 'if restPts')
             for (ci in 1:(nrow(dix) - (restPts>0))) {
                tmpd <- list(int16=int16, float32=float32)[[precision]](chunkPts)
-               if (length(tmpd) != chunkPts) {
+               n <- length(tmpd)
+               if (n != chunkPts) {
                   close(f)
                   stop("something went wrong reading chunk #", ci, " (", chunkPts, " points should have been read, ", n, " points actually read")
                }
@@ -727,7 +732,8 @@ readABF <- function (filename) {
             # collect the rest, if any
             if (restPts) {
                tmpd <- list(int16=int16, float32=float32)[[precision]](restPts)
-               if (length(tmpd) != restPts) {
+               n <- length(tmpd)
+               if (n != restPts) {
                   close(f)
                   stop("something went wrong reading last chunk (", restPts, " points should have been read, ", n, " points actually read")
                }
@@ -738,7 +744,8 @@ readABF <- function (filename) {
          } else {
             # --- situation (i)
             d <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
-            if (length(d) != header$dataPts) {
+            n <- length(d)
+            if (n != header$dataPts) {
                close(f)
                stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n, " points actually read")
             }
