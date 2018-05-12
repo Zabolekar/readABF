@@ -1,17 +1,17 @@
-\name{ABFReader-package}
-\alias{ABFReader-package}
-\alias{ABFReader}
+\name{abfReader-package}
+\alias{abfReader-package}
+\alias{abfReader}
 \docType{package}
-\title{\packageTitle{ABFReader}}
-\description{\packageDescription{ABFReader}}
+\title{\packageTitle{abfReader}}
+\description{\packageDescription{abfReader}}
 \details{
 The DESCRIPTION file:
-\packageDESCRIPTION{ABFReader}
-\packageIndices{ABFReader}
+\packageDESCRIPTION{abfReader}
+\packageIndices{abfReader}
 }
 \author{
-\packageAuthor{ABFReader}
+\packageAuthor{abfReader}
 
-Maintainer: \packageMaintainer{ABFReader}
+Maintainer: \packageMaintainer{abfReader}
 }
 \keyword{package}
