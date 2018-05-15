@@ -1,14 +1,14 @@
-\name{data.vs.time}
-\alias{data.vs.time}
-\title{Prepare the result of readABF for plotting}
+\name{as.data.frame.ABF}
+\alias{as.data.frame.ABF}
+\title{Convert the Result of readABF to a Data Frame}
 \description{
   Convert the result of \code{readABF} to a data frame that can be easily plotted.
 }
 \usage{
-data.vs.time(r, current=1, voltage=2)
+\method{as.data.frame}{ABF}(x, current = 1, voltage = 2)
 }
 \arguments{
-  \item{r}{the result of \code{readABF}.}
+  \item{x}{the result of \code{readABF}.}
   \item{current}{a number indicating which column of the dataset contains the current.}
   \item{voltage}{a number indicating which column of the dataset contains the voltage.}
 }
@@ -16,7 +16,7 @@ data.vs.time(r, current=1, voltage=2)
 \dontrun{
 # load some data and plot it
 r <- readABF("some_data.abf")
-plot(data.vs.time(r))
+plot(as.data.frame(r))
 }
 }
 \keyword{file}

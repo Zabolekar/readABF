@@ -13,5 +13,7 @@ The DESCRIPTION file:
 \packageAuthor{abfReader}
 
 Maintainer: \packageMaintainer{abfReader}
+
+This project was funded by Deutsche Forschungsgemeinschaft SFB 803 Z2.
 }
 \keyword{package}

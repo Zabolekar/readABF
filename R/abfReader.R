@@ -23,7 +23,7 @@ channels <- "a" # TODO: means "all". As stated in the comments, this flag is cur
 # 5-30 min
 chunk <- 0.05
 machineF <- "ieee-le"
-verbose <- 1
+verbose <- FALSE
 doLoadData <- TRUE
 # TODO: info mode (where doLoadData is false) is currently not implemented, maybe never will
 BLOCKSIZE <- 512
@@ -460,7 +460,7 @@ readABF <- function (filename) {
 # -------------------------------------------------------------------------
    
    if (header$nOperationMode == 1) {
-      print("data were acquired in event-driven variable-length mode")
+      if (verbose) print("data were acquired in event-driven variable-length mode")
       if (header$fFileVersionNumber >=2.0) {
          stop("ABFReader currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0")
       } else {
@@ -533,11 +533,11 @@ readABF <- function (filename) {
       }
    } else if (header$nOperationMode %in% c(2, 4, 5)) {
       if (header$nOperationMode == 2) {
-         print("data were acquired in event-driven fixed-length mode")
+         if (verbose) print("data were acquired in event-driven fixed-length mode")
       } else if (header$nOperationMode == 4) {
-         print("data were acquired in high-speed oscilloscope mode")
+         if (verbose) print("data were acquired in high-speed oscilloscope mode")
       } else {
-         print("data were acquired in waveform fixed-length mode")
+         if (verbose) print("data were acquired in waveform fixed-length mode")
       }
       # extract timing information on sweeps
       if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
@@ -626,7 +626,7 @@ readABF <- function (filename) {
          }
       }
    } else if (header$nOperationMode == 3) {
-      print("data were acquired in gap-free mode")
+      if (verbose) print("data were acquired in gap-free mode")
       # from whereStart, whereStop, headOffset and header$fADCSampleInterval calculate first point to be read
       #  and - unless whereStop is given as "e" - number of points
       startPt <- floor(1e6*whereStart*(1/header$fADCSampleInterval))
@@ -778,21 +778,36 @@ readABF <- function (filename) {
       }
    }
    
-   list(
+   result <- list(
+      path = normalizePath(filename),
       format_version = sprintf("%.2f", header$fFileVersionNumber),
       header = header,
       data = d
    )
-
+   class(result) <- "ABF"
+   result
 }
 
 # this function should be applied to the return value of readABF
 # it produces a data frame that can be plotted
-data.vs.time <- function (r, current=1, voltage=2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
-   si <- r$header$si # sampling interval (aka dt) in us
+as.data.frame.ABF <- function (x, current=1, voltage=2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
+   si <- x$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
    data.frame(
-      time = seq(0, by = si, length.out = nrow(r$data)),
-      data = r$data[,current]/r$data[,voltage] # unit: nanoSiemens
+      time = seq(0, by = si, length.out = nrow(x$data)),
+      data = x$data[,current]/x$data[,voltage] # unit: nanoSiemens
    )
+}
+
+plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]") {
+   plot(as.data.frame(x, current=1, voltage=2), xlab=xlab, ylab=ylab)
+}
+
+print.ABF <- function (x) {
+   cat("Path: ", x$path, "\n")
+   cat("Format version: ", x$format_version, "\n")
+   cat("Channel names: ", x$header$channel_names, "\n")
+   cat("Channel units: ", x$header$channel_units, "\n")
+   cat("Channel length: ", ncol(r$data), "\n")
+   invisible(x)
 }

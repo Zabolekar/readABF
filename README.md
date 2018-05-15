@@ -4,7 +4,7 @@ As of now, the package can be installed as follows:
 
 ```
 library(devtools)
-install_github("Zabolekar/ABFReader")
+install_github("Zabolekar/abfReader")
 ```
 
 At some point it will be considered good enough and submitted to CRAN as well.
@@ -12,9 +12,9 @@ At some point it will be considered good enough and submitted to CRAN as well.
 ## Usage
 
 ```
-library(ABFReader)
+library(abfReader)
 r <- readABF("some_data.abf")
-plot(data.vs.time(r))
+plot(r, current = 1, voltage = 2)
 ```
 
 ## Difference from other packages

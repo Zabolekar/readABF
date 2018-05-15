@@ -1,1 +1,2 @@
-export(readABF, data.vs.time)
+importFrom("graphics", "plot")
+export(readABF, print.ABF, as.data.frame.ABF, plot.ABF)
