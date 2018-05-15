@@ -799,8 +799,8 @@ as.data.frame.ABF <- function (x, current=1, voltage=2) { # TODO: when should I 
    )
 }
 
-plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]") {
-   plot(as.data.frame(x, current=1, voltage=2), xlab=xlab, ylab=ylab)
+plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]", ...) {
+   plot(as.data.frame(x, current=1, voltage=2), xlab=xlab, ylab=ylab, ...)
 }
 
 print.ABF <- function (x) {

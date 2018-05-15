@@ -5,15 +5,19 @@
 \title{\packageTitle{abfReader}}
 \description{\packageDescription{abfReader}}
 \details{
-The DESCRIPTION file:
-\packageDESCRIPTION{abfReader}
+This package aims to read both ABF2 files created by pClamp 10 and newer and ABF files created by pClamp 9 and older, especially ABF version 1.83.
 \packageIndices{abfReader}
 }
 \author{
-\packageAuthor{abfReader}
+\strong{Maintainer}: Stanislav Syekirin \email{syekirin@gmail.com}
 
-Maintainer: \packageMaintainer{abfReader}
+Author: Stanislav Syekirin
 
-This project was funded by Deutsche Forschungsgemeinschaft SFB 803 Z2.
+Other contributors:
+\itemize{
+\item Florian Pein \email{fpein@uni-goettingen.de}
+\item Deutsche Forschungsgemeinschaft SFB 803 Z2 [funder]
+}
+
 }
 \keyword{package}
