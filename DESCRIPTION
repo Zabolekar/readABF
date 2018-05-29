@@ -4,8 +4,6 @@ Version: 0.4.1
 Date: 2018-05-03
 Authors@R: c(person("Stanislav", "Syekirin", role = c("aut", "cre"), email = "syekirin@gmail.com"),
    person("Florian", "Pein", role = "ctb", email = "fpein@uni-goettingen.de"))
-Author: Stanislav Syekirin [aut, cre],
-   Florian Pein [ctb]
-Maintainer: Stanislav Syekirin <syekirin@gmail.com>
 Description: Loads Axon Binary Files (both ABF and ABF2) created by Axon Instruments/Molecular Devices software such as pClamp.
 License: GPL-3
+Suggests: testthat

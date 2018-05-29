@@ -1,2 +1,6 @@
 importFrom("graphics", "plot")
-export(readABF, print.ABF, as.data.frame.ABF, plot.ABF)
+export(readABF)
+
+S3method(print, ABF)
+S3method(plot, ABF)
+S3method(as.data.frame, ABF)
