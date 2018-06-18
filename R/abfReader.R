@@ -799,9 +799,26 @@ as.data.frame.ABF <- function (x, current=1, voltage=2) { # TODO: when should I 
    )
 }
 
+# x ABF object
+# source = list(), each entry either a integer, gewisse strings: "time", benutzer eingabe eines vectors 
+# default: list("time", seq(along = x$data))
+# conductance vector von 2 integers
+# name = c(characters), same length as source (+1 falls conductance !is.null(conductance))
+# unit = c(characters), same length as source (+1 falls conductance !is.null(conductance))
+
+
 plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]", ...) {
    plot(as.data.frame(x, current=1, voltage=2), xlab=xlab, ylab=ylab, ...)
 }
+
+# x ABF object
+# source = list(), each entry either a integer, gewisse strings: "time", benutzer eingabe eines vectors 
+# default: list("time", seq(along = x$data))
+# conductance vector von 2 integers
+# use.columns
+# name = c(characters), same length as source (+1 falls conductance !is.null(conductance))
+# unit = c(characters), same length as source (+1 falls conductance !is.null(conductance))
+
 
 print.ABF <- function (x) {
    cat("Path: ", x$path, "\n")
