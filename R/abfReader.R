@@ -170,6 +170,7 @@ readABF <- function (filename) {
       header$fFileVersionNumber <- sum(header$uFileVersionNumber * (1e-4)*10**(1:4)) # for example, c(5,4,3,2) becomes 2.345
       header$lFileStartTime <- header$uFileStartTimeMS*0.001 # convert ms to s
    } else {
+      close(f)
       stop("unknown or incompatible file signature")
       # for example, the signature could be "2FBA" on Mac. We don't implement it because we don't have a Mac to test it
    }
@@ -234,7 +235,12 @@ readABF <- function (filename) {
       strings <- readCharDontTruncate(f, sections$StringsSection$uBytes)
       
       keywords <- c("clampex","clampfit","axoscope","patchxpress")
-      matches <-  sapply(keywords, function (s) sapply(strings, function (r) grepl(s, r, ignore.case=TRUE)))
+      matches <-  sapply(keywords, function (s) {
+         sapply(strings, function (r) {
+            suppressWarnings(grepl(s, r, ignore.case=TRUE))
+            # the warning we're trying to suppress is "input string 1 is invalid in this locale"
+         })
+      })
       # it results in a boolean matrix with keywords as columns and strings as rows
       if (sum(matches) != 1) {
          warning("problems in StringsSection")
@@ -499,7 +505,7 @@ readABF <- function (filename) {
          })
          # load data if requested
          if (doLoadData) { # TODO this variable
-            for (i in 1:nSweeps) { # TODO what if nSweeps is 0, can it be 0?
+            for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps can be 0
                # if selected sweeps are to be read, seek correct position
                if (nSweeps != header$lActualEpisodes) {
                   seek(f, segStartInPts[sweeps[i]])
@@ -762,8 +768,8 @@ readABF <- function (filename) {
          }
       }
    } else {
-      print("unknown recording mode -- returning empty matrix") # TODO: is it a matrix?
-      d <- list() # TODO: in matlab it was a cell array, so it may behave a little differently when assigning empty vectors
+      warning("unknown recording mode -- returning empty matrix")
+      d <- matrix() # R does not have empty matrices, this is, in fact, a matrix with one NA
       header$si <- c() # TODO: same here, maybe not a vector; also we probably don't even need it here
    }
 
@@ -782,7 +788,8 @@ readABF <- function (filename) {
       path = normalizePath(filename),
       format_version = sprintf("%.2f", header$fFileVersionNumber),
       header = header,
-      data = d
+      data = d,
+      nSweeps = nSweeps
    )
    class(result) <- "ABF"
    result

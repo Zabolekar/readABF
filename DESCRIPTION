@@ -7,3 +7,4 @@ Authors@R: c(person("Stanislav", "Syekirin", role = c("aut", "cre"), email = "sy
 Description: Loads Axon Binary Files (both ABF and ABF2) created by Axon Instruments/Molecular Devices software such as pClamp.
 License: GPL-3
 Suggests: testthat
+Encoding: UTF-8
