@@ -5,12 +5,13 @@
   Convert the result of \code{readABF} to a data frame that can be easily plotted.
 }
 \usage{
-\method{as.data.frame}{ABF}(x, current = 1, voltage = 2)
+\method{as.data.frame}{ABF}(x, row.names = NULL, optional = FALSE, ..., current = 1, voltage = 2)
 }
 \arguments{
   \item{x}{the result of \code{readABF}.}
   \item{current}{a number indicating which column of the dataset contains the current.}
   \item{voltage}{a number indicating which column of the dataset contains the voltage.}
+  \item{row.names, optional, ...}{further arguments in case they are passed from other methods; will be ignored.}
 }
 \examples{
 \dontrun{

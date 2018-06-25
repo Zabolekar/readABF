@@ -11,6 +11,8 @@
   \item{x}{the result of \code{readABF}.}
   \item{current}{a number indicating which column of the dataset contains the current.}
   \item{voltage}{a number indicating which column of the dataset contains the voltage.}
+  \item{xlab}{a title for the x axis.}
+  \item{ylab}{a title for the y axis.}
   \item{...}{further arguments to \code{plot.data.frame}}
 }
 \examples{

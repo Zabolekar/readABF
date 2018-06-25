@@ -86,79 +86,79 @@ readABF <- function (filename) {
    float32 <- function (n=1) readBin(f, n=n, "double", size=4, endian="little")
    char <- function (n=1) readChar(f, rep(1, n), useBytes=TRUE)
    chararr <- function (n=1) readChar(f, rep(n, 16), useBytes=TRUE)
-   `%:%` <- function (a, b) header[[as.character(substitute(a))]] <<- b()
+   `%:%` <- function (a, b) header[[a]] <<- b()
    `%x%` <- function (f, n) function () f(n)
 
    header$fFileSignature <- readChar(f, nchars=4, useBytes=TRUE)
 
    `ABF ` <- function () {
-      fFileVersionNumber %:% float32
-      nOperationMode %:% int16
-      lActualAcqLength %:% int32
-      nNumPointsIgnored %:% int16
-      lActualEpisodes %:% int32
+      "fFileVersionNumber" %:% float32
+      "nOperationMode" %:% int16
+      "lActualAcqLength" %:% int32
+      "nNumPointsIgnored" %:% int16
+      "lActualEpisodes" %:% int32
       skip(4)
-      lFileStartTime %:% int32
+      "lFileStartTime" %:% int32
       skip(12)
-      lDataSectionPtr %:% int32
-      lTagSectionPtr %:% int32
-      lNumTagEntries %:% int32
+      "lDataSectionPtr" %:% int32
+      "lTagSectionPtr" %:% int32
+      "lNumTagEntries" %:% int32
       skip(40)
-      lSynchArrayPtr %:% int32
-      lSynchArraySize %:% int32
-      nDataFormat %:% int16
+      "lSynchArrayPtr" %:% int32
+      "lSynchArraySize" %:% int32
+      "nDataFormat" %:% int16
       skip(18)
-      nADCNumChannels %:% int16
-      fADCSampleInterval %:% float32
+      "nADCNumChannels" %:% int16
+      "fADCSampleInterval" %:% float32
       skip(4)
-      fSynchTimeUnit %:% float32
+      "fSynchTimeUnit" %:% float32
       skip(4)
-      lNumSamplesPerEpisode %:% int32
-      lPreTriggerSamples %:% int32
-      lEpisodesPerRun %:% int32
+      "lNumSamplesPerEpisode" %:% int32
+      "lPreTriggerSamples" %:% int32
+      "lEpisodesPerRun" %:% int32
       skip(94)
-      fADCRange %:% float32
+      "fADCRange" %:% float32
       skip(4)
-      lADCResolution %:% int32
+      "lADCResolution" %:% int32
       skip(110)
-      nFileStartMillisecs %:% int16
+      "nFileStartMillisecs" %:% int16
       skip(10)
-      nADCPtoLChannelMap %:% (int16 %x% 16)
-      nADCSamplingSeq %:% (int16 %x% 16)
-      sADCChannelName %:% (chararr %x% 10)
-      sADCUnits %:% (chararr %x% 8)
-      fADCProgrammableGain %:% (float32 %x% 16)
+      "nADCPtoLChannelMap" %:% (int16 %x% 16)
+      "nADCSamplingSeq" %:% (int16 %x% 16)
+      "sADCChannelName" %:% (chararr %x% 10)
+      "sADCUnits" %:% (chararr %x% 8)
+      "fADCProgrammableGain" %:% (float32 %x% 16)
       skip(128)
-      fInstrumentScaleFactor %:% (float32 %x% 16)
-      fInstrumentOffset %:% (float32 %x% 16)
-      fSignalGain %:% (float32 %x% 16)
-      fSignalOffset %:% (float32 %x% 16)
+      "fInstrumentScaleFactor" %:% (float32 %x% 16)
+      "fInstrumentOffset" %:% (float32 %x% 16)
+      "fSignalGain" %:% (float32 %x% 16)
+      "fSignalOffset" %:% (float32 %x% 16)
       skip(3334)
-      nTelegraphEnable %:% (int16 %x% 16)
+      "nTelegraphEnable" %:% (int16 %x% 16)
       skip(32)
-      fTelegraphAdditGain %:% (float32 %x% 16)
+      "fTelegraphAdditGain" %:% (float32 %x% 16)
    }
 
    `ABF2` <- function () {
-      uFileVersionNumber %:% (int8 %x% 4) # name is misleading, u is uint32, but we read four int8's for practical reasons
+      "uFileVersionNumber" %:% (int8 %x% 4) # name is misleading, u is uint32, but we read four int8's for practical reasons
       # also it is called fFileVersionNumber in abfload.m for consistency with older versions
-      uFileInfoSize %:% uint32
-      lActualEpisodes %:% uint32 # TODO: lActualEpisodes instead of uActualEpisodes for uint32 is confusing, but currently necessary for our code to work. rewrite
-      uFileStartDate %:% uint32
-      uFileStartTimeMS %:% uint32
-      uStopwatchTime %:% uint32
-      nFileType %:% int16
-      nDataFormat %:% int16
-      nSimultaneousScan %:% int16
-      nCRCEnable %:% int16
-      uFileCRC %:% uint32
-      FileGUID %:% (int32 %x% 4) # abfload.m says it is uint32, but it's not, a GUID should have 16 bytes
+      "uFileInfoSize" %:% uint32
+      "lActualEpisodes" %:% uint32 # TODO: lActualEpisodes instead of uActualEpisodes for uint32 is confusing, but currently necessary for our code to work. rewrite
+      "uFileStartDate" %:% uint32
+      "uFileStartTimeMS" %:% uint32
+      "uStopwatchTime" %:% uint32
+      "nFileType" %:% int16
+      "nDataFormat" %:% int16
+      "nSimultaneousScan" %:% int16
+      "nCRCEnable" %:% int16
+      "uFileCRC" %:% uint32
+      "FileGUID" %:% (int32 %x% 4) # abfload.m says it is uint32, but it's not, a GUID should have 16 bytes
       # we don't use it (so we could actually just skip(16)), but its size should be right so the alignment is right
-      uCreatorVersion %:% uint32
-      uCreatorNameIndex %:% uint32
-      uModifierVersion %:% uint32
-      uModifierNameIndex %:% uint32
-      uProtocolPathIndex %:% uint32
+      "uCreatorVersion" %:% uint32
+      "uCreatorNameIndex" %:% uint32
+      "uModifierVersion" %:% uint32
+      "uModifierNameIndex" %:% uint32
+      "uProtocolPathIndex" %:% uint32
    }
 
    if (header$fFileSignature == "ABF ") { # note the blank
@@ -797,12 +797,12 @@ readABF <- function (filename) {
 
 # this function should be applied to the return value of readABF
 # it produces a data frame that can be plotted
-as.data.frame.ABF <- function (x, current=1, voltage=2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
+as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ..., current = 1, voltage = 2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
    si <- x$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
    data.frame(
       time = seq(0, by = si, length.out = nrow(x$data)),
-      data = x$data[,current]/x$data[,voltage] # unit: nanoSiemens
+      data = x$data[,current]/x$data[,voltage], # unit: nanoSiemens
    )
 }
 
@@ -827,11 +827,11 @@ plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductanc
 # unit = c(characters), same length as source (+1 falls conductance !is.null(conductance))
 
 
-print.ABF <- function (x) {
+print.ABF <- function (x, ...) {
    cat("Path: ", x$path, "\n")
    cat("Format version: ", x$format_version, "\n")
    cat("Channel names: ", x$header$channel_names, "\n")
    cat("Channel units: ", x$header$channel_units, "\n")
-   cat("Channel length: ", ncol(r$data), "\n")
+   cat("Channel length: ", ncol(x$data), "\n")
    invisible(x)
 }
