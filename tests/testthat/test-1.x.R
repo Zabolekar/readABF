@@ -9,7 +9,8 @@ test_that("ABF 1.83 files can be loaded", {
          "1.83",
          c("Im        ", "Vm        "),
          c("pA      ", "mV      "),
-         c(3000000, 2)
+         c(3000000, 2),
+         mode=3
       )
    }
 
@@ -18,7 +19,8 @@ test_that("ABF 1.83 files can be loaded", {
       "1.83",
       c("Im        ", "Vm        "),
       c("pA      ", "mV      "),
-      c(600000, 2)
+      c(600000, 2),
+      mode=3
    )
 
    for (name in c(file.path("TestABF", "1 M KCl 10 mM HEPES pH 75_0033.abf"),
@@ -29,7 +31,8 @@ test_that("ABF 1.83 files can be loaded", {
          "1.83",
          c("IN 0      ", "10_Vm     "),
          c("pA      ", "mV      "),
-         c(1032258, 2, 1)
+         c(1032258, 2, 1),
+         mode=5
       )
    }
 

@@ -2,8 +2,10 @@ examples <- function (name) {
    file.path("..", "..", "..", "Examples", name)
 }
 
-basic_test <- function (name, version, channel_names, channel_units, dims) {
+basic_test <- function (name, version, channel_names, channel_units, dims, mode) {
    r <- readABF(examples(name))
+   # print(paste(name, r$header$nOperationMode))
+   expect_equal(mode, r$header$nOperationMode)
    expect_equal(r$format_version, version)
    expect_equal(r$header$channel_names, channel_names)
    expect_equal(r$header$channel_units, channel_units)

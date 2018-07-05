@@ -12,7 +12,8 @@ test_that("ABF 2.00 files can be loaded", {
          "2.00",
          c("IN 0", "IN 1", "IN 2"),
          c("pA", "A", "mV"),
-         c(1200000, 3)
+         c(1200000, 3),
+         mode=3
       )
    }
 
@@ -23,7 +24,8 @@ test_that("ABF 2.00 files can be loaded", {
          "2.00",
          c("IN 0", "IN 1", "IN 2"),
          c("pA", "A", "mV"),
-         c(600000, 3)
+         c(600000, 3),
+         mode=3
       )
    }
 
@@ -32,7 +34,8 @@ test_that("ABF 2.00 files can be loaded", {
       "2.00",
       "IN 0",
       "pA",
-      c(239130, 1, 1)
+      c(239130, 1, 1),
+      mode=5
    ), "problems in StringsSection")
 
    expect_warning(basic_test(
@@ -40,7 +43,8 @@ test_that("ABF 2.00 files can be loaded", {
       "2.00",
       "IN 0",
       "pA",
-      c(358703, 1, 1)
+      c(358703, 1, 1),
+      mode=5
    ), "problems in StringsSection")
 
    expect_warning(basic_test(
@@ -48,7 +52,8 @@ test_that("ABF 2.00 files can be loaded", {
       "2.00",
       c("Im", "Vm"),
       c("pA", "mV"),
-      c(207987, 2)
+      c(207987, 2),
+      mode=3
    ), "problems in StringsSection")
 
    expect_warning(basic_test(
@@ -56,7 +61,8 @@ test_that("ABF 2.00 files can be loaded", {
       "2.00",
       c("Im", "Vm"),
       c("pA", "mV"),
-      c(249434, 2)
+      c(249434, 2),
+      mode=3
    ), "problems in StringsSection")
 
 })
