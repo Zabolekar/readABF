@@ -1,12 +1,11 @@
-\name{abfReader-package}
-\alias{abfReader-package}
-\alias{abfReader}
+\name{readABF-package}
+\alias{readABF-package}
 \docType{package}
-\title{\packageTitle{abfReader}}
-\description{\packageDescription{abfReader}}
+\title{\packageTitle{readABF}}
+\description{\packageDescription{readABF}}
 \details{
 This package aims to read both ABF2 files created by pClamp 10 and newer and ABF files created by pClamp 9 and older, especially ABF version 1.83.
-\packageIndices{abfReader}
+\packageIndices{readABF}
 }
 \author{
 \strong{Maintainer}: Stanislav Syekirin \email{syekirin@gmail.com}
