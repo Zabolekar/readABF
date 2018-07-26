@@ -25,7 +25,6 @@ chunk <- 0.05
 machineF <- "ieee-le"
 verbose <- FALSE
 doLoadData <- TRUE
-# TODO: info mode (where doLoadData is false) is currently not implemented, maybe never will
 BLOCKSIZE <- 512
 
 section_names <- c("ProtocolSection", "ADCSection", "DACSection", "EpochSection", "ADCPerDACSection", "EpochPerDACSection",
@@ -468,7 +467,8 @@ readABF <- function (filename) {
    if (header$nOperationMode == 1) {
       if (verbose) print("data were acquired in event-driven variable-length mode")
       if (header$fFileVersionNumber >=2.0) {
-         stop("ABFReader currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0")
+         close(f)
+         stop("This reader currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
             close(f)
@@ -505,6 +505,7 @@ readABF <- function (filename) {
          })
          # load data if requested
          if (doLoadData) { # TODO this variable
+            d <- list()
             for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps can be 0
                # if selected sweeps are to be read, seek correct position
                if (nSweeps != header$lActualEpisodes) {
@@ -533,7 +534,7 @@ readABF <- function (filename) {
                   }
                }
                # tmpd consists of one sweep with channels in columns
-               d[[i]] <- tmpd # TODO: we didn't define d before, do we?
+               d[[i]] <- tmpd
             }
          }
       }
