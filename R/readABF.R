@@ -48,6 +48,8 @@ readABF <- function (filename) {
    fileSz <- file.size(filename)
 
    f <- file(filename, open="rb")
+   on.exit(close(f))
+
    header <- list()
    # some black black magic
    # TODO: what is this -1 in matlab headers?
@@ -159,7 +161,6 @@ readABF <- function (filename) {
       header$fFileVersionNumber <- sum(header$uFileVersionNumber * (1e-4)*10**(1:4)) # for example, c(5,4,3,2) becomes 2.345
       header$lFileStartTime <- header$uFileStartTimeMS*0.001 # convert ms to s
    } else {
-      close(f)
       stop("unknown or incompatible file signature")
       # for example, the signature could be "2FBA" on Mac. We don't implement it because we don't have a Mac to test it
    }
@@ -363,14 +364,13 @@ readABF <- function (filename) {
    }
 
    if (header$lActualAcqLength < header$nADCNumChannels) {
-      close(f)
       stop("less data points than sampled channels in file")
    }
 
    # the numerical value of all recorded channels (numbers 0..15)
    recChIdx <- header$nADCSamplingSeq[1:header$nADCNumChannels]
    # the corresponding indices into loaded data d
-   recChInd <- 1:length(recChIdx)
+   chInd <- 1:length(recChIdx) # TODO: its usage probably can be greatly simplified
    
    if (header$fFileVersionNumber < 2) {
      # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
@@ -380,9 +380,7 @@ readABF <- function (filename) {
      header$channel_units <- header$sADCUnits[recChIdx+1]
    }
    
-   # TODO: the old comment says "check whether requested channels exist", but we probably won't do it here, clean up, try to merge chInd and recChInd
    eflag <- FALSE
-   chInd <- recChInd
    
    # gain of telegraphed instruments, if any
    if (header$fFileVersionNumber >=1.65) {
@@ -400,7 +398,6 @@ readABF <- function (filename) {
       dataSz <- 4 # bytes/point
       precision <- "float32"
    } else {
-      close(f)
       stop("invalid number format")
    }
 
@@ -442,11 +439,9 @@ readABF <- function (filename) {
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >=2.0) {
-         close(f)
          stop("This reader currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-            close(f)
             stop("internal variables 'lSynchArray*' are zero or negative")
          }
          # the byte offset at which the SynchArraySection starts
@@ -454,16 +449,13 @@ readABF <- function (filename) {
          # before reading Synch Arr parameters check if file is big enough to hold them
          # 4 bytes/long, 2 values per episode (start and length)
          if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
-            close(f)
             stop("file seems not to contain complete Synch Array Section")
          }
          tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-            close(f)
             stop("something went wrong positioning file pointer to Synch Array Section", call.=FALSE)
          })
          synchArr <- int32(header$lSynchArraySize*2)
          if (length(synchArr) != header$lSynchArraySize*2) {
-            close(f)
             stop("something went wrong reading synch array section")
          }
          # make synchArr a header$lSynchArraySize x 2 matrix
@@ -475,15 +467,10 @@ readABF <- function (filename) {
          # start time (synchArr[,1]) has to be divided by header$nADCNumChannels to get true value
          # go to data portion
          tryCatch(seek(f, headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-            close(f)
             stop("something went wrong positioning file pointer (too few data points ?)")
          })
          d <- list()
-         for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps can be 0
-            # if selected sweeps are to be read, seek correct position
-            if (nSweeps != header$lActualEpisodes) {
-               seek(f, segStartInPts[sweeps[i]])
-            }
+         for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
             tmpd <- list(int16=int16, float32=float32)[[precision]](segLengthInPts[sweeps[i]])
             n <- length(tmpd)
             if (n != segLengthInPts[sweeps[i]]) {
@@ -491,13 +478,10 @@ readABF <- function (filename) {
             }
             header$dataPtsPerChan <- n/header$nADCNumChannels
             if (n %% header$nADCNumChannels > 0) {
-               close(f)
                stop("number of data points in episode not OK")
             }
             # separate channels
             tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
-            # retain only requested channels
-            tmpd <- tmpd[chInd,]
             tmpd <- t(tmpd)
             # if data format is integer, scale appropriately; if it's float, tmpd is fine
             if (!header$nDataFormat) {
@@ -516,7 +500,6 @@ readABF <- function (filename) {
       # 5: waveform fixed-length mode
       # extract timing information on sweeps:
       if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-         close(f)
          stop("internal variables 'lSynchArraynnn' are zero or negative")
       }
       # the byte offset at which the SynchArraySection starts
@@ -524,22 +507,18 @@ readABF <- function (filename) {
       # before reading Synch Arr parameters check if file is big enough to hold them
       # 4 bytes/long, 2 values per episode (start and length)
       if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
-         close(f)
          stop("file seems not to contain complete Synch Array Section")
       }
       tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-         close(f)
          stop("something went wrong positioning file pointer to Synch Array Section")
       })
       synchArr <- int32(header$lSynchArraySize*2)
       if (length(synchArr) != header$lSynchArraySize*2) {
-         close(f)
          stop("something went wrong reading synch array section")
       }
       # make synchArr a header$lSynchArraySize x 2 matrix
       synchArr <- t(matrix(synchArr, nrow=2))
       if (length(unique(synchArr[,2])) > 1) {
-        close(f)
         stop("sweeps of unequal length in file recorded in fixed-length mode")
       }
       # the length of sweeps in sample points (**note: parameter lLength of
@@ -557,35 +536,29 @@ readABF <- function (filename) {
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
       if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        close(f)
         stop("number of data points not OK")
       }
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
       tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-        close(f)
         stop("something went wrong positioning file pointer (too few data points ?)")
       })
-      d <- array(0, c(header$sweepLengthInPts, length(chInd), nSweeps))
+      d <- list() # array(0, c(header$sweepLengthInPts, length(chInd), nSweeps))
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
       selectedSegStartInPts <- ((sweeps-1)*dataPtsPerSweep)*dataSz + headOffset      
-      for (i in 1:nSweeps) {
+      for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
          seek(f, selectedSegStartInPts[i])
          tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
          n <- length(tmpd)
          if (n != dataPtsPerSweep) {
-            close(f)
             stop("something went wrong reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read, ", n, " points actually read")
          }
          header$dataPtsPerChan <- n/header$nADCNumChannels
          if (n %% header$nADCNumChannels > 0) {
-            close(f)
             stop("number of data points in episode not OK")
          }
-         # separate channels..
+         # separate channels
          tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
-         # retain only requested channels
-         tmpd <- tmpd[chInd,]
          tmpd <- t(tmpd)
          # if data format is integer, scale appropriately; if it's float, d is fine
          if (!header$nDataFormat) {
@@ -594,8 +567,7 @@ readABF <- function (filename) {
                tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
             }
          }
-         # now fill 3d array, TODO: think about global type of d
-         d[,,i] <- tmpd
+         d[[i]] <- tmpd
       }
    } else if (header$nOperationMode == 3) { # gap-free mode
       # from whereStart, whereStop, headOffset and header$fADCSampleInterval calculate first point to be read
@@ -611,12 +583,10 @@ readABF <- function (filename) {
          header$dataPtsPerChan <- floor(1e6*(whereStop-whereStart)*(1/header$si))
          header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
          if (header$dataPts <= 0) {
-           close(f)
            stop("whereStart is larger than or equal to whereStop")
          }
       }
       if (header$dataPts %% header$nADCNumChannels > 0) {
-         close(f)
          stop("number of data points not OK")
       }
       
@@ -627,111 +597,32 @@ readABF <- function (filename) {
       header$recTime <- header$lFileStartTime
       header$recTime <- c(header$recTime, header$recTime+totalLength) # TODO: pay attention here, maybe it should be cbind instead of c
       tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-         close(f)
          stop("something went wrong positioning file pointer (too few data points ?)")
       })
-      
-      # *** decide on the most efficient way to read data:
-      # (i) all (of one or several) channels requested: read, done
-      # (ii) one (of several) channels requested: use the 'skip' feature of
-      # fread # TODO: this comment is NOT applicable to R code
-      # (iii) more than one but not all (of several) channels requested:
-      # 'discontinuous' mode of reading data. Read a reasonable chunk of data
-      # (all channels), separate channels, discard non-requested ones (if
-      # any), place data in preallocated array, repeat until done. This is
-      # faster than reading the data in one big lump, separating channels and
-      # discarding the ones not requested
-      if (length(chInd) == 1 && header$nADCNumChannels > 1) {
-         # --- situation (ii)
-         # jump to proper reading frame position in file
-         tryCatch(seek(f, (chInd-1)*dataSz, origin="current"), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
-            close(f)
-            stop("something went wrong positioning file pointer (too few data points ?)")
-         })
-         # read, skipping header$nADCNumChannels-1 data points after each read
-         d <- c()
-         for (i in 1:header$dataPtsPerChan) {
-            d <- c(d, list(int16=int16, float32=float32)[[precision]](1))
-            skip(dataSz*(header$nADCNumChannels-1))
-         }
-         n <- length(d)
-         if (n != header$dataPtsPerChan) {
-            close(f)
-            stop("something went wrong reading file (", header$dataPtsPerChan, " points should have been read, ", n, " points actually read")
-         }
-      } else if (length(chInd)/header$nADCNumChannels < 1) {
-         # --- situation (iii)
-         # prepare chunkwise upload:
-         # preallocate d
-         d <- matrix(NaN, header$dataPtsPerChan, length(chInd)) # TODO: should R have NaN here, too?
-         # the number of data points corresponding to the maximal chunk size,
-         # rounded off such that from each channel the same number of points is
-         # read (do not forget that each data point will by default be made a
-         # double of 8 bytes, no matter what the original data format is)
-         chunkPtsPerChan <- floor(chunk*2^20/8/header$nADCNumChannels)
-         chunkPts <- chunkPtsPerChan*header$nADCNumChannels
-         # the number of those chunks..
-         nChunk <- floor(header$dataPts/chunkPts) # reading file in nChunk chunks
-         # ..and the remainder
-         restPts <- header$dataPts - nChunk*chunkPts
-         restPtsPerChan <- restPts/header$nADCNumChannels
-         # chunkwise row indices into d
-         dix <- seq(1, header$dataPtsPerChan, by=chunkPtsPerChan)
-         dix <- cbind(dix, dix+chunkPtsPerChan-1)
-         dix[nrow(dix),2] <- header$dataPtsPerChan
-         # do it: if no remainder exists loop through all rows of dix,
-         # otherwise spare last row for the lines below (starting with
-         # 'if restPts')
-         for (ci in 1:(nrow(dix) - (restPts>0))) {
-            tmpd <- list(int16=int16, float32=float32)[[precision]](chunkPts)
-            n <- length(tmpd)
-            if (n != chunkPts) {
-               close(f)
-               stop("something went wrong reading chunk #", ci, " (", chunkPts, " points should have been read, ", n, " points actually read")
-            }
-            # separate channels..
-            tmpd <- matrix(tmpd, header$nADCNumChannels, chunkPtsPerChan)
-            d[dix[ci,1]:dix[ci,2],] <- t(tmpd[chInd,])
-         }
-         # collect the rest, if any
-         if (restPts) {
-            tmpd <- list(int16=int16, float32=float32)[[precision]](restPts)
-            n <- length(tmpd)
-            if (n != restPts) {
-               close(f)
-               stop("something went wrong reading last chunk (", restPts, " points should have been read, ", n, " points actually read")
-            }
-            # separate channels..
-            tmpd <- matrix(tmpd, header$nADCNumChannels, restPtsPerChan)
-            d[dix[nrow(dix),1]:dix[nrow(dix),2],] <- t(tmpd[chInd,])
-         }
-      } else {
-         # --- situation (i)
-         d <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
-         n <- length(d)
-         if (n != header$dataPts) {
-            close(f)
-            stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n, " points actually read")
-         }
-         # separate channels..
-         d <- matrix(d, header$nADCNumChannels, header$dataPtsPerChan)
-         d <- t(d)
+
+      tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
+      n <- length(tmpd)
+      if (n != header$dataPts) {
+         stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n, " points actually read")
       }
+      # separate channels..
+      tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
+      tmpd <- t(tmpd)
+
       # if data format is integer, scale appropriately; if it's float, d is fine
       if (!header$nDataFormat) {
          for (j in 1:length(chInd)) {
             ch <- recChIdx[chInd[j]]+1
-            d[,j]=d[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+            tmpd[,j]=tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
          }
       }
-   } else {
-      warning("unknown recording mode -- returning empty matrix")
-      d <- matrix() # R does not have empty matrices, this is, in fact, a matrix with one NA
-      header$si <- c() # TODO: same here, maybe not a vector; also we probably don't even need it here
-   }
 
-   close(f) # TODO: cleaner way
-   # also TODO: more checks, like if you read integer(0)
+      d <- list()
+      d[[1]] <- tmpd
+
+   } else {
+      stop("unknown recording mode")
+   }
 
    # finally, possibly add information on episode number to tags
    if (length(header$tags) > 0 && !is.null(header$sweepStartInPts)) {
@@ -754,41 +645,62 @@ readABF <- function (filename) {
 
 # this function should be applied to the return value of readABF
 # it produces a data frame that can be plotted
-as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ..., current = 1, voltage = 2) { # TODO: when should I use 1:3? AFAIK, I should divide Im.pA by Vm.mV
+as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ..., sweep = NULL) {
    si <- x$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
-   data.frame(
-      time = seq(0, by = si, length.out = nrow(x$data)),
-      data = x$data[,current]/x$data[,voltage], # unit: nanoSiemens
-   )
+
+   if (is.null(sweep)) {
+      if (length(x$data) > 1) {
+         stop("This file has more than one sweep, please specify which one you want")
+      } else {
+         sweep <- 1
+      }
+   }
+
+   m <- x$data[[sweep]]
+   result <- data.frame("Time [s]" = seq(0, by = si, length.out = nrow(m)))
+   for(i in seq_along(x$header$channel_names)) {
+      name <- trimws(x$header$channel_names[i])
+      unit <- trimws(x$header$channel_units[i])
+      full_name <- paste0(name, " [", unit, "]")
+      result[[full_name]] <- m[,i]
+   }
+   result
 }
 
-# x ABF object
-# source = list(), each entry either a integer, gewisse strings: "time", benutzer eingabe eines vectors 
-# default: list("time", seq(along = x$data))
-# conductance vector von 2 integers
-# name = c(characters), same length as source (+1 falls conductance !is.null(conductance))
-# unit = c(characters), same length as source (+1 falls conductance !is.null(conductance))
+conductance <- function (x, sweep, current, voltage) {
+   current_unit <- x$header$channel_units[current]
+   voltage_unit <- x$header$channel_units[voltage]
+   if (!grepl("A", current_unit)) {
+      warning("Channel ", current, " has unit ", current_unit, " and is unlikely to contain current")
+   }
+   if (!grepl("V", voltage_unit)) {
+      warning("Channel ", voltage, " has unit ", voltage_unit, " and is unlikely to contain voltage")
+   }
+   
+   conductance_unit <- paste0(current_unit, "/", voltage_unit)
+   # e.g. "pA/mV" (which means nanoSiemens)
 
-
-plot.ABF <- function (x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]", ...) {
-   plot(as.data.frame(x, current=1, voltage=2), xlab=xlab, ylab=ylab, ...)
+   df <- as.data.frame(x, sweep = sweep)
+   result <- data.frame("Time [s]" = df[,1])
+   result[[paste0("Conductance [", conductance_unit, "]")]] = df[,current+1]/df[,voltage+1]
+   result
 }
 
-# x ABF object
-# source = list(), each entry either a integer, gewisse strings: "time", benutzer eingabe eines vectors 
-# default: list("time", seq(along = x$data))
-# conductance vector von 2 integers
-# use.columns
-# name = c(characters), same length as source (+1 falls conductance !is.null(conductance))
-# unit = c(characters), same length as source (+1 falls conductance !is.null(conductance))
-
+plot.ABF <- function (x, ..., conductance = FALSE) {
+   if (conductance) {
+      plot(conductance(x, 1, 2, 3)[,1:2], ...)
+   } else {
+      plot(as.data.frame(x, sweep = 1)[,1:2], ...)
+   }
+}
 
 print.ABF <- function (x, ...) {
    cat("Path: ", x$path, "\n")
    cat("Format version: ", x$format_version, "\n")
    cat("Channel names: ", x$header$channel_names, "\n")
    cat("Channel units: ", x$header$channel_units, "\n")
-   cat("Channel length: ", ncol(x$data), "\n")
+   cat("Number of sweeps: ", length(x$data), "\n")
+   cat("Length of the first sweep: ", nrow(x$data[[1]]), "\n")
    invisible(x)
 }

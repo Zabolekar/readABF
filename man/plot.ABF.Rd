@@ -2,18 +2,15 @@
 \alias{plot.ABF}
 \title{Plot the Result of readABF}
 \description{
-  Plot the result of \code{readABF}. For any ABF object \code{r} the result of \code{plot(r)} should be identical to that of \code{plot(as.data.frame(r))}.
+  Plot the result of \code{readABF}.
 }
 \usage{
-\method{plot}{ABF}(x, current=1, voltage=2, xlab="Time [s]", ylab="Conductance [nS]", \dots)
+\method{plot}{ABF}(x, \dots, conductance = FALSE)
 }
 \arguments{
   \item{x}{the result of \code{readABF}.}
-  \item{current}{a number indicating which column of the dataset contains the current.}
-  \item{voltage}{a number indicating which column of the dataset contains the voltage.}
-  \item{xlab}{a title for the x axis.}
-  \item{ylab}{a title for the y axis.}
   \item{...}{further arguments to \code{plot.data.frame}}
+  \item{conductance}{if \code{TRUE}, make an attempt to calculate and plot the conductance against time. The default behaviour is to plot the first channel of the first sweep, whatever it contains, agains time}
 }
 \examples{
 \dontrun{

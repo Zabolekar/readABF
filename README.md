@@ -16,7 +16,7 @@ At some point it will be considered good enough and submitted to CRAN as well.
 ```
 library(readABF)
 r <- readABF("some_data.abf")
-plot(r, current = 1, voltage = 2)
+plot(r)
 ```
 
 ## Difference from other packages
