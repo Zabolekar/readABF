@@ -10,22 +10,11 @@
 
 # TODO: copy some comments from matlab to here
 
-# constants:
-whereStart <- 0.0
-whereStop <- "e"
-chunk <- 0.05 # unit: MB, taken from abfload.m, an empirical value which works well for abf with 6-16 channels and recording durations of 5-30 min
-machineF <- "ieee-le"
-BLOCKSIZE <- 512
-
-section_names <- c("ProtocolSection", "ADCSection", "DACSection", "EpochSection", "ADCPerDACSection", "EpochPerDACSection",
-                   "UserListSection", "StatsRegionSection", "MathSection", "StringsSection", "DataSection", "TagSection",
-                   "ScopeSection", "DeltaSection", "VoiceTagSection", "SynchArraySection", "AnnotationSection", "StatsSection")
-
-readCharDontTruncate <- function (con, nchars) {
+.readCharDontTruncate <- function(con, nchars) {
    # readChar is not guaranteed to read all nchars characters as it truncates at the first null, we don't want that
    # sadly, our result still can't contain null (it is not allowed in R strings)
    # so we split it into multiple strings
-   chars <- readChar(con, rep(1, nchars), useBytes=TRUE)
+   chars <- readChar(con, rep(1, nchars), useBytes=TRUE)  # TODO: Did you consider readBin()?
 
    one_small_string <- ""
    small_strings <- c()
@@ -39,15 +28,30 @@ readCharDontTruncate <- function (con, nchars) {
          one_small_string <- paste0(one_small_string, char)
       }
    }
+   
+   # TODO: ignores the end if it is not determined by "", is this intentionally?
 
    small_strings
 }
 
-readABF <- function (filename) {
+readABF <- function (file) {
+   # constants:
+   whereStart <- 0.0
+   whereStop <- "e"
+   chunk <- 0.05 # unit: MB, taken from abfload.m, an empirical value which works well for abf with 6-16 channels and
+                 # recording durations of 5-30 min
+   machineF <- "ieee-le"
+   BLOCKSIZE <- 512
+  
+   section_names <- c("ProtocolSection", "ADCSection", "DACSection", "EpochSection", "ADCPerDACSection",
+                      "EpochPerDACSection", "UserListSection", "StatsRegionSection", "MathSection", "StringsSection",
+                      "DataSection", "TagSection", "ScopeSection", "DeltaSection", "VoiceTagSection", "SynchArraySection",
+                      "AnnotationSection", "StatsSection")
+  
+  
+   fileSz <- file.size(file)
 
-   fileSz <- file.size(filename)
-
-   f <- file(filename, open="rb")
+   f <- file(file, open="rb")
    on.exit(close(f))
 
    header <- list()
@@ -69,7 +73,7 @@ readABF <- function (filename) {
          for (i in 1:n) {
             lo <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
             hi <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
-            result <- c(result, 65536.0*hi+lo)
+            result <- c(result, 65536.0*hi+lo) #TODO: result is not an integer, is this intentionally? please comment
          }
       }
       return(result)
@@ -134,7 +138,8 @@ readABF <- function (filename) {
       "uFileVersionNumber" %:% (int8 %x% 4) # name is misleading, u is uint32, but we read four int8's for practical reasons
       # also it is called fFileVersionNumber in abfload.m for consistency with older versions
       "uFileInfoSize" %:% uint32
-      "lActualEpisodes" %:% uint32 # TODO: lActualEpisodes instead of uActualEpisodes for uint32 is confusing, but currently necessary for our code to work. rewrite
+      "lActualEpisodes" %:% uint32 # TODO: lActualEpisodes instead of uActualEpisodes for uint32 is confusing,
+                                   # but currently necessary for our code to work. rewrite
       "uFileStartDate" %:% uint32
       "uFileStartTimeMS" %:% uint32
       "uStopwatchTime" %:% uint32
@@ -222,19 +227,21 @@ readABF <- function (filename) {
          sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(), llNumEntries=int64())
       }
       seek(f, sections$StringsSection$uBlockIndex*BLOCKSIZE)
-      strings <- readCharDontTruncate(f, sections$StringsSection$uBytes)
+      strings <- .readCharDontTruncate(f, sections$StringsSection$uBytes)
       
       keywords <- c("clampex","clampfit","axoscope","patchxpress")
       matches <-  sapply(keywords, function (s) {
          sapply(strings, function (r) {
             suppressWarnings(grepl(s, r, ignore.case=TRUE))
             # the warning we're trying to suppress is "input string 1 is invalid in this locale"
+           #TODO: Why is this happening and why is it harmless?
          })
       })
       # it results in a boolean matrix with keywords as columns and strings as rows
       if (sum(matches) != 1) {
          warning("problems in StringsSection")
          # TODO: actually it can be worse than a warning
+        # TODO: remove in final version, long term: try to understand better
       }
       
       for (i in seq_along(strings)) {
@@ -253,13 +260,13 @@ readABF <- function (filename) {
          ii <- ADCsec[[i]]$nADCNum+1
          header$nADCSamplingSeq[i] <- ADCsec[[i]]$nADCNum
          
-         header$channel_names <- c(header$channel_names, strings[ADCsec[[i]]$lADCChannelNameIndex]) # TODO: matlab uses strvcat here, it ignores empty strings, it might be intentional, check if something goes wrong
+         header$channel_names <- c(header$channel_names, strings[ADCsec[[i]]$lADCChannelNameIndex]) 
+         # TODO: matlab uses strvcat here, it ignores empty strings, it might be intentional, check if something goes wrong
          unitsIndex <- ADCsec[[i]]$lADCUnitsIndex
          if (unitsIndex > 0) {
            header$channel_units <- c(header$channel_units, strings[unitsIndex]) # strvcat too
          }
-         # TODO: the following probably can be written better
-         # TODO: also, variables that aren't really part of the "physical" header don't belong in the header object
+         # TODO: variables that aren't really part of the "physical" header don't belong in the header object
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
          header$fTelegraphAdditGain[ii] <- ADCsec[[i]]$fTelegraphAdditGain
          header$fInstrumentScaleFactor[ii] <- ADCsec[[i]]$fInstrumentScaleFactor
@@ -425,7 +432,7 @@ readABF <- function (filename) {
          # time of tag entry from start of experiment in s (corresponding expisode
          # number, if applicable, will be determined later)
          header$tags[[i]] <- list(
-            timeSinceRecStart=tmp$lTagTime*header$synchArrTimeBase/1e6, # TODO: how is this supposed to work?
+            timeSinceRecStart=tmp$lTagTime*header$synchArrTimeBase/1e6,
             comment=tmp$sComment
          )
       }
@@ -439,10 +446,12 @@ readABF <- function (filename) {
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >=2.0) {
-         stop("This reader currently does not work with data acquired in event-driven variable-length mode and ABF version 2.0")
+         stop("This reader currently does not work if data acquired in event-driven variable-length mode", 
+              " and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-            stop("internal variables 'lSynchArray*' are zero or negative")
+            stop("internal variables 'lSynchArray*' are zero or negative") 
+           #TODO: Is it possible to give a more informative message?
          }
          # the byte offset at which the SynchArraySection starts
          header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
@@ -451,7 +460,8 @@ readABF <- function (filename) {
          if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
             stop("file seems not to contain complete Synch Array Section")
          }
-         tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
+         tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { 
+           # TODO: pretty sure it's a matlab only problem, not applicable to R
             stop("something went wrong positioning file pointer to Synch Array Section", call.=FALSE)
          })
          synchArr <- int32(header$lSynchArraySize*2)
@@ -466,7 +476,8 @@ readABF <- function (filename) {
          segStartInPts <- cumsum(c(0, segLengthInPts[1:length(segLengthInPts)-1])*dataSz) + headOffset
          # start time (synchArr[,1]) has to be divided by header$nADCNumChannels to get true value
          # go to data portion
-         tryCatch(seek(f, headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
+         tryCatch(seek(f, headOffset), error = function (e) { 
+           # TODO: pretty sure it's a matlab only problem, not applicable to R
             stop("something went wrong positioning file pointer (too few data points ?)")
          })
          d <- list()
@@ -474,7 +485,8 @@ readABF <- function (filename) {
             tmpd <- list(int16=int16, float32=float32)[[precision]](segLengthInPts[sweeps[i]])
             n <- length(tmpd)
             if (n != segLengthInPts[sweeps[i]]) {
-               warning("something went wrong reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]], " points should have been read, ", n, " points actually read")
+               warning("something went wrong reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]],
+                       " points should have been read, ", n, " points actually read")
             }
             header$dataPtsPerChan <- n/header$nADCNumChannels
             if (n %% header$nADCNumChannels > 0) {
@@ -487,7 +499,9 @@ readABF <- function (filename) {
             if (!header$nDataFormat) {
                for (j in 1:length(chInd)) {
                   ch <- recChIdx[chInd[j]]+1
-                  tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+                  tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*
+                                          header$fADCProgrammableGain[ch]*addGain[ch])*
+                    header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
                }
             }
             # tmpd consists of one sweep with channels in columns
@@ -500,7 +514,7 @@ readABF <- function (filename) {
       # 5: waveform fixed-length mode
       # extract timing information on sweeps:
       if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-         stop("internal variables 'lSynchArraynnn' are zero or negative")
+         stop("internal variables 'lSynchArraynnn' are zero or negative") # TODO: better message if possible
       }
       # the byte offset at which the SynchArraySection starts
       header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
@@ -509,7 +523,8 @@ readABF <- function (filename) {
       if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
          stop("file seems not to contain complete Synch Array Section")
       }
-      tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
+      tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { 
+        # TODO: pretty sure it's a matlab only problem, not applicable to R
          stop("something went wrong positioning file pointer to Synch Array Section")
       })
       synchArr <- int32(header$lSynchArraySize*2)
@@ -530,17 +545,19 @@ readABF <- function (filename) {
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
       tmpvar <- header$sweepStartInPts[length(header$sweepStartInPts)]
-      header$recTime <- header$recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*header$nADCNumChannels)
+      header$recTime <- header$recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*
+                                             header$nADCNumChannels)
       # determine first point and number of points to be read
       startPt <- 0
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
       if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        stop("number of data points not OK")
+        stop("number of data points not OK") #TODO: better error message if possible
       }
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
-      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
+      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { 
+        # TODO: pretty sure it's a matlab only problem, not applicable to R
         stop("something went wrong positioning file pointer (too few data points ?)")
       })
       d <- list() # array(0, c(header$sweepLengthInPts, length(chInd), nSweeps))
@@ -551,7 +568,8 @@ readABF <- function (filename) {
          tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
          n <- length(tmpd)
          if (n != dataPtsPerSweep) {
-            stop("something went wrong reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read, ", n, " points actually read")
+            stop("something went wrong reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read,
+                 ", n, " points actually read")
          }
          header$dataPtsPerChan <- n/header$nADCNumChannels
          if (n %% header$nADCNumChannels > 0) {
@@ -564,7 +582,9 @@ readABF <- function (filename) {
          if (!header$nDataFormat) {
             for (j in 1:length(chInd)) {
                ch <- recChIdx[chInd[j]] + 1
-               tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+               tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*
+                                       header$fADCProgrammableGain[ch]*addGain[ch])*
+                 header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
             }
          }
          d[[i]] <- tmpd
@@ -595,15 +615,18 @@ readABF <- function (filename) {
       
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
-      header$recTime <- c(header$recTime, header$recTime+totalLength) # TODO: pay attention here, maybe it should be cbind instead of c
-      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { # TODO: pretty sure it's a matlab only problem, not applicable to R
+      header$recTime <- c(header$recTime, header$recTime+totalLength) 
+      # TODO: pay attention here, maybe it should be cbind instead of c, when paw attention how you index it?
+      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { 
+        # TODO: pretty sure it's a matlab only problem, not applicable to R
          stop("something went wrong positioning file pointer (too few data points ?)")
       })
 
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
       n <- length(tmpd)
       if (n != header$dataPts) {
-         stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n, " points actually read")
+         stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n,
+              " points actually read")
       }
       # separate channels..
       tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
@@ -613,7 +636,9 @@ readABF <- function (filename) {
       if (!header$nDataFormat) {
          for (j in 1:length(chInd)) {
             ch <- recChIdx[chInd[j]]+1
-            tmpd[,j]=tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*addGain[ch])*header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+            tmpd[,j]=tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*
+                                 addGain[ch])*
+              header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
          }
       }
 
@@ -633,7 +658,7 @@ readABF <- function (filename) {
    }
    
    result <- list(
-      path = normalizePath(filename),
+      path = normalizePath(file),
       format_version = sprintf("%.2f", header$fFileVersionNumber),
       header = header,
       data = d,
@@ -641,66 +666,4 @@ readABF <- function (filename) {
    )
    class(result) <- "ABF"
    result
-}
-
-# this function should be applied to the return value of readABF
-# it produces a data frame that can be plotted
-as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ..., sweep = NULL) {
-   si <- x$header$si # sampling interval (aka dt) in us
-   si <- si * 1e-6 # converting to s
-
-   if (is.null(sweep)) {
-      if (length(x$data) > 1) {
-         stop("This file has more than one sweep, please specify which one you want")
-      } else {
-         sweep <- 1
-      }
-   }
-
-   m <- x$data[[sweep]]
-   result <- data.frame("Time [s]" = seq(0, by = si, length.out = nrow(m)))
-   for(i in seq_along(x$header$channel_names)) {
-      name <- trimws(x$header$channel_names[i])
-      unit <- trimws(x$header$channel_units[i])
-      full_name <- paste0(name, " [", unit, "]")
-      result[[full_name]] <- m[,i]
-   }
-   result
-}
-
-conductance <- function (x, sweep, current, voltage) {
-   current_unit <- x$header$channel_units[current]
-   voltage_unit <- x$header$channel_units[voltage]
-   if (!grepl("A", current_unit)) {
-      warning("Channel ", current, " has unit ", current_unit, " and is unlikely to contain current")
-   }
-   if (!grepl("V", voltage_unit)) {
-      warning("Channel ", voltage, " has unit ", voltage_unit, " and is unlikely to contain voltage")
-   }
-   
-   conductance_unit <- paste0(current_unit, "/", voltage_unit)
-   # e.g. "pA/mV" (which means nanoSiemens)
-
-   df <- as.data.frame(x, sweep = sweep)
-   result <- data.frame("Time [s]" = df[,1])
-   result[[paste0("Conductance [", conductance_unit, "]")]] = df[,current+1]/df[,voltage+1]
-   result
-}
-
-plot.ABF <- function (x, ..., conductance = FALSE) {
-   if (conductance) {
-      plot(conductance(x, 1, 2, 3)[,1:2], ...)
-   } else {
-      plot(as.data.frame(x, sweep = 1)[,1:2], ...)
-   }
-}
-
-print.ABF <- function (x, ...) {
-   cat("Path: ", x$path, "\n")
-   cat("Format version: ", x$format_version, "\n")
-   cat("Channel names: ", x$header$channel_names, "\n")
-   cat("Channel units: ", x$header$channel_units, "\n")
-   cat("Number of sweeps: ", length(x$data), "\n")
-   cat("Length of the first sweep: ", nrow(x$data[[1]]), "\n")
-   invisible(x)
 }

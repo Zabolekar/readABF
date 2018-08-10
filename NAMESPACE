@@ -1,5 +1,5 @@
 importFrom("graphics", "plot")
-export(readABF, conductance)
+export(readABF)
 
 S3method(print, ABF)
 S3method(plot, ABF)

@@ -1,22 +1,26 @@
 \name{readABF}
 \alias{readABF}
-\title{Read an ABF File}
+\title{Reads ABF Files}
 \description{
-  Read an ABF file into an ABF object.
+Reads ABF2 files created by pClamp 10 and newer and ABF files created by pClamp 9 and older.
 }
 \usage{
-readABF(filename)
+readABF(file)
 }
+
 \arguments{
-  \item{filename}{a character string giving the name of the file to load.}
+  \item{file}{character vector, containing the file name or path.}
 }
+
+\value{an ABF object, i.e. a \code{\link{list}} containing the data and other information like the header.}
+
 \seealso{
   \code{\link{as.data.frame.ABF}}, \code{\link{plot.ABF}}, \code{\link{print.ABF}}
 }
+
 \examples{
 \dontrun{
-## load some data and check the version number
-r <- readABF("some_data.abf")
-print(r)
+## reads "some_data.abf"
+readABF("some_data.abf")
 }
 }
