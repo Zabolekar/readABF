@@ -4,7 +4,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
                                current, voltage, unit = NULL) {
    if (is.null(sweep)) {
       if (length(x$data) > 1) {
-         stop("This ABF object has more than one sweep, "
+         stop("This ABF object has more than one sweep, ",
               "please specify which one you want")
       } else {
          sweep <- 1
@@ -26,12 +26,12 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
    # If we provide a name "Time [s]" on data frame creation,
    # it becomes "Time..s." for some reason.
    # So we assign it after the data frame is created:
-   colnames(result) <- "Time [s]"
+   colnames(result) <- "Time [s] ;"
 
    for(i in seq_along(x$header$channel_names)) {
       channel_name <- trimws(x$header$channel_names[i])
       channel_unit <- trimws(x$header$channel_units[i])
-      full_name <- paste0(channel_name, " [", channel_unit, "]")
+      full_name <- paste0(channel_name, " [", channel_unit, "] ;")
       result[[full_name]] <- m[,i]
    }
 
@@ -56,8 +56,8 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
       current <- result[,current+1]
       voltage <- result[,voltage+1]
 
-      result <- data.frame("Time [s]" = result[,1])
-      result[[paste0("Conductance [", unit, "]")]] = current/voltage
+      result <- data.frame("Time [s] ;" = result[,1])
+      result[[paste0("Conductance [", unit, "] ;")]] = current/voltage
    }
 
    result

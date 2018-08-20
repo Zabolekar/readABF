@@ -3,12 +3,12 @@
 \title{Coerces an ABF Object to a Data Frame}
 
 \description{
-S3method to coerce an \code{\link[=readABF-package]{ABF}} object to a data frame. TODO tranformation to conductance
+S3method to coerce an \code{\link[=readABF-package]{ABF}} object to a data frame.
 }
 
 \usage{
-\S3method{as.data.frame}{ABF}(x, row.names = NULL, optional = FALSE, ..., sweep = NULL, type = c("all", "conductance"),
-current, voltage, unit = NULL)
+\S3method{as.data.frame}{ABF}(x, row.names = NULL, optional = FALSE, ..., sweep = NULL,
+type = c("all", "conductance"), current, voltage, unit = NULL)
 }
 
 \arguments{
@@ -21,7 +21,11 @@ current, voltage, unit = NULL)
   \item{unit}{a string, specifying the unit of conductance, if \code{NULL} unit will be determined by current and voltage units in \code{x}; ignored if \code{type == "all"}}
 }
 
-\value{TODO: data.frame, time added}
+\value{A \code{data.frame}. The first column always contains the time which is calculated from the sampling interval. The earliest data point is believed to have Time = 0.
+
+Column names are accompanied by their units. Every column name ends in ";": while it feels controversial at first, we've found them to be less readable without a separator.
+
+TODO time added, TODO tranformation to conductance}
 
 \examples{
 \dontrun{
