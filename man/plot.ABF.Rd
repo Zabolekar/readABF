@@ -1,8 +1,8 @@
 \name{plot.ABF}
 \alias{plot.ABF}
-\title{Plots an ABF Objects}
+\title{Plots an ABF Object}
 \description{
-S3method to plot \link[readABF]{ABF} objects.
+S3method to plot \code{\link[=readABF-package]{ABF}} objects.
 }
 \usage{
 \S3method{plot}{ABF}(x, pch = ".", \dots, sweep = 1, type = c("all", "conductance"), current, voltage, unit = NULL)

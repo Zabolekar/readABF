@@ -1,6 +1,6 @@
 Package: readABF
 Title: Loads Axon Binary Files
-Version: 0.7.0
+Version: 0.7.1
 Date: 2018-07-31
 Authors@R: c(person("Stanislav", "Syekirin", role = c("aut", "cre"), email = "syekirin@gmail.com"),
    person("Florian", "Pein", role = "ctb", email = "fpein@uni-goettingen.de"))

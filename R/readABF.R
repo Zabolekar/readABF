@@ -446,7 +446,7 @@ readABF <- function (file) {
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >=2.0) {
-         stop("This reader currently does not work if data acquired in event-driven variable-length mode", 
+         stop("This reader currently does not work with data acquired in event-driven variable-length mode", 
               " and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
