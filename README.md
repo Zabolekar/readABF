@@ -1,4 +1,4 @@
-[![Travis-CI Build Status](https://travis-ci.org/Zabolekar/abfReader.svg?branch=master)](https://travis-ci.org/Zabolekar/abfReader)
+[![Travis-CI Build Status](https://travis-ci.org/Zabolekar/readABF.svg?branch=master)](https://travis-ci.org/Zabolekar/readABF)
 
 ## Installation
 
