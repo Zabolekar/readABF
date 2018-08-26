@@ -28,36 +28,34 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
    # So we assign it after the data frame is created:
    colnames(result) <- "Time [s] ;"
 
-   for(i in seq_along(x$header$channel_names)) {
-      channel_name <- trimws(x$header$channel_names[i])
-      channel_unit <- trimws(x$header$channel_units[i])
-      full_name <- paste0(channel_name, " [", channel_unit, "] ;")
-      result[[full_name]] <- m[,i]
-   }
-
-   if (type == "conductance") {
+   if (type == "all") {
+      for(i in seq_along(x$header$channel_names)) {
+         channel_name <- trimws(x$header$channel_names[i])
+         channel_unit <- trimws(x$header$channel_units[i])
+         full_name <- paste0(channel_name, " [", channel_unit, "] ;")
+         result[[full_name]] <- m[,i]
+      }
+   } else { # type == "conductance"
+      current_unit <- trimws(x$header$channel_units[current])
       if (!grepl("A", current_unit)) {
          warning("Channel ", current, " has unit ", current_unit,
                  " and might not contain current")
       }
+      voltage_unit <- trimws(x$header$channel_units[voltage])
       if (!grepl("V", voltage_unit)) {
          warning("Channel ", voltage, " has unit ", voltage_unit,
                  " and might not contain voltage")
       }
 
       if (is.null(unit)) {
-         current_unit <- x$header$channel_units[current]
-         voltage_unit <- x$header$channel_units[voltage]
-
          unit <- paste0(current_unit, "/", voltage_unit)
          # e.g. "pA/mV" (which means nanoSiemens)
       }
 
-      current <- result[,current+1]
-      voltage <- result[,voltage+1]
-
-      result <- data.frame("Time [s] ;" = result[,1])
-      result[[paste0("Conductance [", unit, "] ;")]] = current/voltage
+      current_data <- m[,current]
+      voltage_data <- m[,voltage]
+      conductance_data <- current_data/voltage_data
+      result[[paste0("Conductance [", unit, "] ;")]] = conductance_data
    }
 
    result

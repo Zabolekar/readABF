@@ -18,14 +18,23 @@ type = c("all", "conductance"), current, voltage, unit = NULL)
   \item{type}{a string specifying the return value, see \sQuote{Values}.}
   \item{current}{an integer, indicating which channel contains the current; required if \code{type == "conductance"}, otherwise ignored.}
   \item{voltage}{an integer, indicating which channel contains the voltage; required if \code{type == "conductance"}, otherwise ignored.}
-  \item{unit}{a string, specifying the unit of conductance, if \code{NULL} unit will be determined by current and voltage units in \code{x}; ignored if \code{type == "all"}}
+  \item{unit}{a string, specifying the unit of conductance, if \code{NULL} unit will be determined by current and voltage units in \code{x};
+  ignored if \code{type == "all"}}
 }
 
-\value{A \code{data.frame}. The first column always contains the time which is calculated from the sampling interval. The earliest data point is believed to have Time = 0.
+\value{A \code{data.frame}. The first column always contains the time which is calculated from the sampling interval.
+The earliest data point is believed to have Time = 0.
 
-Column names are accompanied by their units. Every column name ends in ";": while it feels controversial at first, we've found them to be less readable without a separator.
+Column names are accompanied by their units. Every column name ends in ";": while it feels controversial at first,
+we've found them to be less readable without a separator.
 
-TODO time added, TODO tranformation to conductance}
+If \code{type == "all"}, all channels are added to the resulting data frame. Their units are read from the ABF object.
+
+If \code{type == "conductance"}, only the two channels whose indices are specified by \code{current} and \code{voltage} are used, the resulting data
+frame only contains the time (see above) and the conductance, defined as the ratio of voltage to current. Its unit is either provided as \code{unit}
+or, if not provided, the ratio of the voltage unit to the current unit (as read from the ABF object) is used. It's the users responsibility to ensure
+that the channels actually contain voltage and current (the code only gives a warning if it's unlikely to be the case).
+}
 
 \examples{
 \dontrun{
