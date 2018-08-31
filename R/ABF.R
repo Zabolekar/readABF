@@ -20,7 +20,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
 
    si <- x$header$si # sampling interval (aka dt) in us
    si <- si * 1e-6 # converting to s
-  
+
    m <- x$data[[sweep]]
    result <- data.frame(seq(0, by = si, length.out = nrow(m)))
    # If we provide a name "Time [s]" on data frame creation,
@@ -55,7 +55,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
       current_data <- m[,current]
       voltage_data <- m[,voltage]
       conductance_data <- current_data/voltage_data
-      result[[paste0("Conductance [", unit, "] ;")]] = conductance_data
+      result[[paste0("Conductance [", unit, "] ;")]] <- conductance_data
    }
 
    result

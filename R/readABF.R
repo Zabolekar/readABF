@@ -10,39 +10,9 @@
 
 # TODO: copy some comments from matlab to here
 
-.readCharDontTruncate <- function(con, nchars) {
-   # readChar is not guaranteed to read all nchars characters as it truncates at the first null, we don't want that
-   # sadly, our result still can't contain null (it is not allowed in R strings)
-   # so we split it into multiple strings
-   chars <- readChar(con, rep(1, nchars), useBytes=TRUE)  # TODO: Did you consider readBin()?
-
-   one_small_string <- ""
-   small_strings <- c()
-   for (char in chars) {
-      if (char == "") { # "" is R euphemism for null character
-         if (one_small_string != "") {
-            small_strings <- c(small_strings, one_small_string)
-            one_small_string <- ""
-         }
-      } else {
-         one_small_string <- paste0(one_small_string, char)
-      }
-   }
-   
-   # TODO: ignores the end if it is not determined by "", is this intentionally?
-
-   small_strings
-}
-
 readABF <- function (file) {
-   # constants:
-   whereStart <- 0.0
-   whereStop <- "e"
-   chunk <- 0.05 # unit: MB, taken from abfload.m, an empirical value which works well for abf with 6-16 channels and
-                 # recording durations of 5-30 min
-   machineF <- "ieee-le"
    BLOCKSIZE <- 512
-  
+
    section_names <- c("ProtocolSection", "ADCSection", "DACSection", "EpochSection", "ADCPerDACSection",
                       "EpochPerDACSection", "UserListSection", "StatsRegionSection", "MathSection", "StringsSection",
                       "DataSection", "TagSection", "ScopeSection", "DeltaSection", "VoiceTagSection", "SynchArraySection",
@@ -66,17 +36,15 @@ readABF <- function (file) {
    uint32 <- function (n=1) {
       # you would think: readBin(f, n=n, "integer", size=4, signed=FALSE, endian="little")
       # but R can't do that
-      # instead we do what the author of abf2 package did:
+      # instead we do what the author of the abf2 package did:
       # we combine two unsigned integers
-      result <- c() # TODO: I never actually want it like this, n is never 0, is it?
-      if (n >= 1) {
-         for (i in 1:n) {
-            lo <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
-            hi <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
-            result <- c(result, 65536.0*hi+lo) #TODO: result is not an integer, is this intentionally? please comment
-         }
+      result <- c()
+      for (i in 1:n) { # we can assume that n is never 0
+         lo <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
+         hi <- readBin(f, "integer", size=2, signed=FALSE, endian="little")
+         result[i] <- 65536*hi+lo
       }
-      return(result)
+      result
    }
    float32 <- function (n=1) readBin(f, n=n, "double", size=4, endian="little")
    char <- function (n=1) readChar(f, rep(1, n), useBytes=TRUE)
@@ -227,21 +195,21 @@ readABF <- function (file) {
          sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(), llNumEntries=int64())
       }
       seek(f, sections$StringsSection$uBlockIndex*BLOCKSIZE)
-      strings <- .readCharDontTruncate(f, sections$StringsSection$uBytes)
+      strings <- readBin(f, what="character", sections$StringsSection$uBytes)
       
       keywords <- c("clampex","clampfit","axoscope","patchxpress")
       matches <-  sapply(keywords, function (s) {
          sapply(strings, function (r) {
             suppressWarnings(grepl(s, r, ignore.case=TRUE))
             # the warning we're trying to suppress is "input string 1 is invalid in this locale"
-           #TODO: Why is this happening and why is it harmless?
+            # TODO: Why is this happening and why is it harmless?
          })
       })
       # it results in a boolean matrix with keywords as columns and strings as rows
       if (sum(matches) != 1) {
          warning("problems in StringsSection")
          # TODO: actually it can be worse than a warning
-        # TODO: remove in final version, long term: try to understand better
+         # TODO: remove in final version, long term: try to understand better
       }
       
       for (i in seq_along(strings)) {
@@ -386,8 +354,6 @@ readABF <- function (file) {
      # same with signal units
      header$channel_units <- header$sADCUnits[recChIdx+1]
    }
-   
-   eflag <- FALSE
    
    # gain of telegraphed instruments, if any
    if (header$fFileVersionNumber >=1.65) {
@@ -547,20 +513,18 @@ readABF <- function (file) {
       tmpvar <- header$sweepStartInPts[length(header$sweepStartInPts)]
       header$recTime <- header$recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*
                                              header$nADCNumChannels)
-      # determine first point and number of points to be read
-      startPt <- 0
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
       if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        stop("number of data points not OK") #TODO: better error message if possible
+        stop("number of data points not OK") # TODO: better error message if possible
       }
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
-      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { 
+      tryCatch(seek(f, headOffset), error = function (e) { 
         # TODO: pretty sure it's a matlab only problem, not applicable to R
         stop("something went wrong positioning file pointer (too few data points ?)")
       })
-      d <- list() # array(0, c(header$sweepLengthInPts, length(chInd), nSweeps))
+      d <- list()
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
       selectedSegStartInPts <- ((sweeps-1)*dataPtsPerSweep)*dataSz + headOffset      
       for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
@@ -590,22 +554,10 @@ readABF <- function (file) {
          d[[i]] <- tmpd
       }
    } else if (header$nOperationMode == 3) { # gap-free mode
-      # from whereStart, whereStop, headOffset and header$fADCSampleInterval calculate first point to be read
-      #  and - unless whereStop is given as "e" - number of points
-      startPt <- floor(1e6*whereStart*(1/header$fADCSampleInterval))
-      # this corrects undesired shifts in the reading frame due to rounding errors in the previous calculation
-      startPt <- floor(startPt/header$nADCNumChannels)*header$nADCNumChannels
-      # if whereStop is a char array, it can only be "e" at this point (other values would have been caught above)
-      if (class(whereStop) == "character") {
-         header$dataPtsPerChan <- header$lActualAcqLength/header$nADCNumChannels - floor(1e6*whereStart/header$si)
-         header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
-      } else {
-         header$dataPtsPerChan <- floor(1e6*(whereStop-whereStart)*(1/header$si))
-         header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
-         if (header$dataPts <= 0) {
-           stop("whereStart is larger than or equal to whereStop")
-         }
-      }
+
+      header$dataPtsPerChan <- header$lActualAcqLength/header$nADCNumChannels
+      header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
+
       if (header$dataPts %% header$nADCNumChannels > 0) {
          stop("number of data points not OK")
       }
@@ -617,7 +569,7 @@ readABF <- function (file) {
       header$recTime <- header$lFileStartTime
       header$recTime <- c(header$recTime, header$recTime+totalLength) 
       # TODO: pay attention here, maybe it should be cbind instead of c, when paw attention how you index it?
-      tryCatch(seek(f, startPt*dataSz+headOffset), error = function (e) { 
+      tryCatch(seek(f, headOffset), error = function (e) { 
         # TODO: pretty sure it's a matlab only problem, not applicable to R
          stop("something went wrong positioning file pointer (too few data points ?)")
       })
