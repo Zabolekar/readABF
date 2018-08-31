@@ -390,7 +390,7 @@ readABF <- function (file) {
    }
 
    # read in the TagSection, do a few computations & write to header$tags
-   header$tags <- list()   
+   header$tags <- list()
    if (sections$TagSection$llNumEntries > 0) {
       tmp <- list()
       for (i in 1:sections$TagSection$llNumEntries) {
@@ -459,8 +459,7 @@ readABF <- function (file) {
                stop("number of data points in episode not OK")
             }
             # separate channels
-            tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
-            tmpd <- t(tmpd)
+            tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
             # if data format is integer, scale appropriately; if it's float, tmpd is fine
             if (!header$nDataFormat) {
                for (j in 1:length(chInd)) {
@@ -526,7 +525,7 @@ readABF <- function (file) {
       })
       d <- list()
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
-      selectedSegStartInPts <- ((sweeps-1)*dataPtsPerSweep)*dataSz + headOffset      
+      selectedSegStartInPts <- (sweeps-1)*dataPtsPerSweep*dataSz + headOffset      
       for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
          seek(f, selectedSegStartInPts[i])
          tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
@@ -540,8 +539,7 @@ readABF <- function (file) {
             stop("number of data points in episode not OK")
          }
          # separate channels
-         tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
-         tmpd <- t(tmpd)
+         tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
          # if data format is integer, scale appropriately; if it's float, d is fine
          if (!header$nDataFormat) {
             for (j in 1:length(chInd)) {
@@ -580,15 +578,14 @@ readABF <- function (file) {
          stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n,
               " points actually read")
       }
-      # separate channels..
-      tmpd <- matrix(tmpd, header$nADCNumChannels, header$dataPtsPerChan)
-      tmpd <- t(tmpd)
+      # separate channels
+      tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
 
       # if data format is integer, scale appropriately; if it's float, d is fine
       if (!header$nDataFormat) {
          for (j in 1:length(chInd)) {
             ch <- recChIdx[chInd[j]]+1
-            tmpd[,j]=tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*
+            tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*
                                  addGain[ch])*
               header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
          }
