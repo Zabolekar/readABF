@@ -34,13 +34,13 @@ So, for now, our tests aren't publicly available, sorry.
 
 This package is being tested with the following combinations of file format versions and operation modes (and, of course, with different and differently-shaped data):
 
-||variable-length event-driven|fixed-length event-driven |gap-free|episodic stimulation|
-|-|:-:|:-:|:-:|:-:|
-|1.65|||| yes |
-|1.80|||yes||
-|1.83|||yes|yes|
-|1.84|yes|yes|yes|yes|
-|2.00|no|yes|yes|yes|
+|    |variable-length event-driven|fixed-length event-driven|gap-free|episodic stimulation|
+|----|:--------------------------:|:-----------------------:|:------:|:------------------:|
+|1.65|                            |                         |        |yes                 |
+|1.80|                            |                         |yes     |                    |
+|1.83|                            |                         |yes     |yes                 |
+|1.84|yes                         |yes                      |yes     |yes                 |
+|2.00|no                          |yes                      |yes     |yes                 |
 
 - "yes" means: it's tested and it works.
 - "no" means: it isn't implemented yet but we've tested that it gives the correct error message.
