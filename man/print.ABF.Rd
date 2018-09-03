@@ -2,7 +2,7 @@
 \alias{print.ABF}
 \title{Prints a Short Decription of an ABF Object}
 \description{
-Prints some information about the \code{\link[=readABF-package]{ABF}} object and returns it invisibly. This helps to identify the dataset but does not overwhelm the user with the raw data.
+Prints some information about the \code{\link[=readABF]{ABF}} object and returns it invisibly. This helps to identify the dataset but does not overwhelm the user with the raw data.
 }
 \usage{
 \S3method{print}{ABF}(x, ...)

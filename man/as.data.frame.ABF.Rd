@@ -3,7 +3,7 @@
 \title{Coerces an ABF Object to a Data Frame}
 
 \description{
-S3method to coerce an \code{\link[=readABF-package]{ABF}} object to a data frame.
+S3 method to coerce an \code{\link[=readABF]{ABF}} object to a data frame.
 }
 
 \usage{

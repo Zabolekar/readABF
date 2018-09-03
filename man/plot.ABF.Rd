@@ -2,7 +2,7 @@
 \alias{plot.ABF}
 \title{Plots an ABF Object}
 \description{
-S3method to plot \code{\link[=readABF-package]{ABF}} objects. Converts the ABF object to a data frame, then plots the data frame.
+S3 method to plot \code{\link[=readABF]{ABF}} objects. Converts the ABF object to a data frame, then plots the data frame.
 }
 \usage{
 \S3method{plot}{ABF}(x, pch = ".", \dots, sweep = 1, type = c("all", "conductance"),

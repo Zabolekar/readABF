@@ -15,7 +15,7 @@ readABF(file)
 \value{an ABF object, i.e. a \code{\link{list}} containing the data and other information like the header.}
 
 \seealso{
-  \code{\link{as.data.frame.ABF}}, \code{\link{plot.ABF}}, \code{\link{print.ABF}}
+  \code{\link{readABF-package}}, \code{\link{as.data.frame.ABF}}, \code{\link{plot.ABF}}, \code{\link{print.ABF}}
 }
 
 \examples{

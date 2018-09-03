@@ -137,7 +137,7 @@ readABF <- function (file) {
       stop("unknown or incompatible file signature")
       # for example, the signature could be "2FBA" on Mac. We don't implement it because we don't have a Mac to test it
    }
-      
+
    sections <- list()
    
    # in the Matlab file they are called recChNames and recChUnits
@@ -411,7 +411,7 @@ readABF <- function (file) {
    
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
-      if (header$fFileVersionNumber >=2.0) {
+      if (header$fFileVersionNumber >= 2.0) {
          stop("This reader currently does not work with data acquired in event-driven variable-length mode", 
               " and ABF version 2.0")
       } else {
