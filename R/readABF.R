@@ -116,8 +116,8 @@ readABF <- function (file) {
       "nSimultaneousScan" %:% int16
       "nCRCEnable" %:% int16
       "uFileCRC" %:% uint32
-      "FileGUID" %:% (int32 %x% 4) # abfload.m says it is uint32, but it's not, a GUID should have 16 bytes
-      # we don't use it (so we could actually just skip(16)), but its size should be right so the alignment is right
+      "FileGUID" %:% (int32 %x% 4) # of course, a GUID is not simply 4 ints,
+      # but we don't use it anyway, and this is still better than just skip(16)
       "uCreatorVersion" %:% uint32
       "uCreatorNameIndex" %:% uint32
       "uModifierVersion" %:% uint32

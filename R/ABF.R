@@ -36,6 +36,9 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
          result[[full_name]] <- m[,i]
       }
    } else { # type == "conductance"
+      if (!hasArg(current) || !hasArg(voltage)) {
+         stop('Both current and voltage are required if type == "conductance"')
+      }
       current_unit <- trimws(x$header$channel_units[current])
       if (!grepl("A", current_unit)) {
          warning("Channel ", current, " has unit ", current_unit,
