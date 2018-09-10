@@ -106,8 +106,8 @@ readABF <- function (file) {
       "uFileVersionNumber" %:% (int8 %x% 4) # name is misleading, u is uint32, but we read four int8's for practical reasons
       # also it is called fFileVersionNumber in abfload.m for consistency with older versions
       "uFileInfoSize" %:% uint32
-      "lActualEpisodes" %:% uint32 # TODO: lActualEpisodes instead of uActualEpisodes for uint32 is confusing,
-                                   # but currently necessary for our code to work. rewrite
+      "lActualEpisodes" %:% uint32 # lActualEpisodes instead of uActualEpisodes for uint32 is confusing,
+      # but currently necessary for consistency
       "uFileStartDate" %:% uint32
       "uFileStartTimeMS" %:% uint32
       "uStopwatchTime" %:% uint32
@@ -348,19 +348,20 @@ readABF <- function (file) {
    chInd <- 1:length(recChIdx) # TODO: its usage probably can be greatly simplified
    
    if (header$fFileVersionNumber < 2) {
-     # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
-     # extracted above at this point)
-     header$channel_names <- header$sADCChannelName[recChIdx+1]
-     # same with signal units
-     header$channel_units <- header$sADCUnits[recChIdx+1]
+      # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
+      # extracted above at this point)
+      header$channel_names <- header$sADCChannelName[recChIdx+1]
+      # same with signal units
+      header$channel_units <- header$sADCUnits[recChIdx+1]
    }
    
    # gain of telegraphed instruments, if any
    if (header$fFileVersionNumber >=1.65) {
-     addGain <- header$nTelegraphEnable * header$fTelegraphAdditGain
-     addGain[addGain==0] <- 1
+      addGain <- header$nTelegraphEnable * header$fTelegraphAdditGain
+      addGain[addGain==0] <- 1
    } else {
-     addGain <- rep(1, length(header$fTelegraphAdditGain))
+      # this line wasn't tested because we don't have files that old
+      addGain <- rep(1, length(header$fTelegraphAdditGain))
    }
    
    # determine offset at which data start
@@ -426,10 +427,7 @@ readABF <- function (file) {
          if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
             stop("file seems not to contain complete Synch Array Section")
          }
-         tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { 
-           # TODO: pretty sure it's a matlab only problem, not applicable to R
-            stop("something went wrong positioning file pointer to Synch Array Section", call.=FALSE)
-         })
+         seek(f, header$lSynchArrayPtrByte)
          synchArr <- int32(header$lSynchArraySize*2)
          if (length(synchArr) != header$lSynchArraySize*2) {
             stop("something went wrong reading synch array section")
@@ -439,13 +437,8 @@ readABF <- function (file) {
          # the length of episodes in sample points
          segLengthInPts <- synchArr[,2]/header$synchArrTimeBase
          # the starting ticks of episodes in sample points WITHIN THE DATA FILE
-         segStartInPts <- cumsum(c(0, segLengthInPts[1:length(segLengthInPts)-1])*dataSz) + headOffset
-         # start time (synchArr[,1]) has to be divided by header$nADCNumChannels to get true value
-         # go to data portion
-         tryCatch(seek(f, headOffset), error = function (e) { 
-           # TODO: pretty sure it's a matlab only problem, not applicable to R
-            stop("something went wrong positioning file pointer (too few data points ?)")
-         })
+         seek(f, headOffset)
+         
          d <- list()
          for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
             tmpd <- list(int16=int16, float32=float32)[[precision]](segLengthInPts[sweeps[i]])
@@ -488,10 +481,7 @@ readABF <- function (file) {
       if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
          stop("file seems not to contain complete Synch Array Section")
       }
-      tryCatch(seek(f, header$lSynchArrayPtrByte), error = function (e) { 
-        # TODO: pretty sure it's a matlab only problem, not applicable to R
-         stop("something went wrong positioning file pointer to Synch Array Section")
-      })
+      seek(f, header$lSynchArrayPtrByte)
       synchArr <- int32(header$lSynchArraySize*2)
       if (length(synchArr) != header$lSynchArraySize*2) {
          stop("something went wrong reading synch array section")
@@ -515,14 +505,11 @@ readABF <- function (file) {
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
       if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        stop("number of data points not OK") # TODO: better error message if possible
+        stop("number of data points not OK") # TODO: better error message if possible, search for every "stop"
       }
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
-      tryCatch(seek(f, headOffset), error = function (e) { 
-        # TODO: pretty sure it's a matlab only problem, not applicable to R
-        stop("something went wrong positioning file pointer (too few data points ?)")
-      })
+      seek(f, headOffset)
       d <- list()
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
       selectedSegStartInPts <- (sweeps-1)*dataPtsPerSweep*dataSz + headOffset      
@@ -567,10 +554,7 @@ readABF <- function (file) {
       header$recTime <- header$lFileStartTime
       header$recTime <- c(header$recTime, header$recTime+totalLength) 
       # TODO: pay attention here, maybe it should be cbind instead of c, when paw attention how you index it?
-      tryCatch(seek(f, headOffset), error = function (e) { 
-        # TODO: pretty sure it's a matlab only problem, not applicable to R
-         stop("something went wrong positioning file pointer (too few data points ?)")
-      })
+      seek(f, headOffset)
 
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
       n <- length(tmpd)
