@@ -26,13 +26,13 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
    # If we provide a name "Time [s]" on data frame creation,
    # it becomes "Time..s." for some reason.
    # So we assign it after the data frame is created:
-   colnames(result) <- "Time [s] ;"
+   colnames(result) <- "Time [s]"
 
    if (type == "all") {
       for(i in seq_along(x$header$channel_names)) {
          channel_name <- trimws(x$header$channel_names[i])
          channel_unit <- trimws(x$header$channel_units[i])
-         full_name <- paste0(channel_name, " [", channel_unit, "] ;")
+         full_name <- paste0(channel_name, " [", channel_unit, "]")
          result[[full_name]] <- m[,i]
       }
    } else { # type == "conductance"

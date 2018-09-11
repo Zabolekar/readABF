@@ -1,14 +1,4 @@
-# comment copied from the matlab file, TODO: adapt, maybe copy more, there was more at the top of the file
-# -- si                   sampling interval
-# -- dataPtsPerChan       sample points per channel
-# -- dataPts              sample points in file
-# -- recTime              recording start and stop time in seconds from
-#                         midnight (millisecond resolution)
-# -- sweepLengthInPts     sample points per sweep (one channel)
-# -- sweepStartInPts      the start times of sweeps in sample points
-#                         (from beginning of recording)
-
-# TODO: copy some comments from matlab to here
+# TODO: copy some comments from matlab to here, but adapt them
 
 readABF <- function (file) {
    BLOCKSIZE <- 512
@@ -26,7 +16,6 @@ readABF <- function (file) {
 
    header <- list()
    # some black black magic
-   # TODO: what is this -1 in matlab headers?
    skip <- function (n) invisible(readBin(f, "raw", n=n))
    bool <- function (n=1) as.logical(readBin(f, n=n, "integer", size=1, endian="little"))
    int8 <- function (n=1) readBin(f, n=n, "integer", size=1, endian="little")
@@ -140,11 +129,11 @@ readABF <- function (file) {
 
    sections <- list()
    
-   # in the Matlab file they are called recChNames and recChUnits
+   # in abfload.m they are called recChNames and recChUnits
    header$channel_names <- c()
    header$channel_units <- c()
    
-   # TODO: check whether it does the same thing as in Matlab
+
    ADC_info <- function (offset) {
       seek(f, offset)
       list(
@@ -190,7 +179,7 @@ readABF <- function (file) {
    
    if (header$fFileVersionNumber >= 2) {
       
-      seek(f, 76) # TODO: why 76? matlab code says so
+      seek(f, 76) # magic number found empirically by the authors of abfload.m
       for (name in section_names) {
          sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(), llNumEntries=int64())
       }
@@ -200,17 +189,15 @@ readABF <- function (file) {
       keywords <- c("clampex","clampfit","axoscope","patchxpress")
       matches <-  sapply(keywords, function (s) {
          sapply(strings, function (r) {
-            suppressWarnings(grepl(s, r, ignore.case=TRUE))
-            # the warning we're trying to suppress is "input string 1 is invalid in this locale"
-            # TODO: Why is this happening and why is it harmless?
+            grepl(s, r, ignore.case=TRUE, useBytes=TRUE)
          })
       })
-      # it results in a boolean matrix with keywords as columns and strings as rows
-      if (sum(matches) != 1) {
-         warning("problems in StringsSection")
-         # TODO: actually it can be worse than a warning
-         # TODO: remove in final version, long term: try to understand better
-      }
+      
+      # `matches` is a boolean matrix with keywords as columns and strings as
+      # rows. We expect sum(matches) to always be 1, but sometimes, for reasons
+      # we don't understand, it isn't. `abfload.m` gives a warning in this case
+      # ("problems in StringsSection"). We might want to give a warning in the
+      # future, too, but it will be more informative.
       
       for (i in seq_along(strings)) {
          if (rowSums(matches)[i] > 0) {
@@ -218,9 +205,7 @@ readABF <- function (file) {
             break
          }
       }
-      
-      # TODO if needed keyword <- colnames(matches)[colSums(matches) > 0][1]
-      
+
       ADCsec <- list()
       
       for (i in 1:sections$ADCSection$llNumEntries) {
@@ -229,10 +214,9 @@ readABF <- function (file) {
          header$nADCSamplingSeq[i] <- ADCsec[[i]]$nADCNum
          
          header$channel_names <- c(header$channel_names, strings[ADCsec[[i]]$lADCChannelNameIndex]) 
-         # TODO: matlab uses strvcat here, it ignores empty strings, it might be intentional, check if something goes wrong
          unitsIndex <- ADCsec[[i]]$lADCUnitsIndex
          if (unitsIndex > 0) {
-           header$channel_units <- c(header$channel_units, strings[unitsIndex]) # strvcat too
+           header$channel_units <- c(header$channel_units, strings[unitsIndex])
          }
          # TODO: variables that aren't really part of the "physical" header don't belong in the header object
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
@@ -553,7 +537,6 @@ readABF <- function (file) {
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
       header$recTime <- c(header$recTime, header$recTime+totalLength) 
-      # TODO: pay attention here, maybe it should be cbind instead of c, when paw attention how you index it?
       seek(f, headOffset)
 
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
