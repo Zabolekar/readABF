@@ -1,19 +1,25 @@
+.column_name <- function (header, i) {
+   channel_name <- trimws(header$channel_names[i])
+   channel_unit <- trimws(header$channel_units[i])
+   paste0(channel_name, " [", channel_unit, "]")
+}
+
 # this function can be applied to the return value of readABF
 as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
-                               sweep = NULL, type = c("all", "conductance"),
-                               current, voltage, unit = NULL) {
+                               sweep = NULL, type = c("all", "one"),
+                               channels, unit = NULL) {
    if (is.null(sweep)) {
       if (length(x$data) > 1) {
-         stop("This ABF object has more than one sweep, ",
-              "please specify which one you want")
+         stop("this ABF object contains more than one sweep, ",
+              "please specify in 'sweep' which one should be used")
       } else {
          sweep <- 1
       }
    }
 
    if (sweep > length(x$data)) {
-      stop("You've requested sweep #", sweep,
-           " but this ABF object only contains ", length(x$data), " sweeps")
+      stop("sweep number ", sweep, " was requested,",
+           " but the ABF object only contains ", length(x$data), " sweeps")
    }
 
    type <- match.arg(type)
@@ -30,45 +36,55 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
 
    if (type == "all") {
       for(i in seq_along(x$header$channel_names)) {
-         channel_name <- trimws(x$header$channel_names[i])
-         channel_unit <- trimws(x$header$channel_units[i])
-         full_name <- paste0(channel_name, " [", channel_unit, "]")
-         result[[full_name]] <- m[,i]
+         name <- .column_name(x$header, i)
+         result[[name]] <- m[,i]
       }
-   } else { # type == "conductance"
-      if (!hasArg(current) || !hasArg(voltage)) {
-         stop('Both current and voltage are required if type == "conductance"')
+   } else { # type == "one"
+      if (!methods::hasArg(channels)) {
+         stop('argument "channels" is required if type == "one"')
       }
-      current_unit <- trimws(x$header$channel_units[current])
-      if (!grepl("A", current_unit)) {
-         warning("Channel ", current, " has unit ", current_unit,
-                 " and might not contain current")
-      }
-      voltage_unit <- trimws(x$header$channel_units[voltage])
-      if (!grepl("V", voltage_unit)) {
-         warning("Channel ", voltage, " has unit ", voltage_unit,
-                 " and might not contain voltage")
-      }
+      if (length(channels) == 1) {
+         name <- .column_name(x$header, channels)
+         result[[name]] <- m[,channels]
 
-      if (is.null(unit)) {
-         unit <- paste0(current_unit, "/", voltage_unit)
-         # e.g. "pA/mV" (which means nanoSiemens)
-      }
+      } else if (length(channels) == 2) {
 
-      current_data <- m[,current]
-      voltage_data <- m[,voltage]
-      conductance_data <- current_data/voltage_data
-      result[[paste0("Conductance [", unit, "] ;")]] <- conductance_data
+         current <- channels[1]
+         voltage <- channels[2]
+
+         current_unit <- trimws(x$header$channel_units[current])
+         if (!grepl("A", current_unit)) {
+            warning("channel ", current, " has unit ", current_unit,
+                  " and might not contain current")
+         }
+         voltage_unit <- trimws(x$header$channel_units[voltage])
+         if (!grepl("V", voltage_unit)) {
+            warning("channel ", voltage, " has unit ", voltage_unit,
+                  " and might not contain voltage")
+         }
+
+         if (is.null(unit)) {
+            unit <- paste0(current_unit, "/", voltage_unit)
+            # e.g. "pA/mV" (which means nanoSiemens)
+         }
+
+         current_data <- m[,current]
+         voltage_data <- m[,voltage]
+         conductance_data <- current_data/voltage_data
+         result[[paste0("Conductance [", unit, "]")]] <- conductance_data
+
+      } else {
+         stop('argument "channels" should be of length 1 or 2')
+      }
    }
 
    result
 }
 
-plot.ABF <- function (x, pch = ".", ..., sweep = 1,
-                      type = c("all", "conductance"), current, voltage,
-                      unit = NULL) {
-   df <- as.data.frame(x, sweep = sweep, type = type, current = current,
-                       voltage = voltage, unit = unit)
+plot.ABF <- function (x, pch = ".", ..., sweep = 1, type = c("all", "one"),
+                      channels, unit = NULL) {
+   df <- as.data.frame(x, sweep = sweep, type = type, channels = channels,
+                       unit = unit)
    plot(df, pch = pch, ...)
 }
 

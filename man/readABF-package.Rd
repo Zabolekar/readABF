@@ -4,19 +4,18 @@
 \title{\packageTitle{readABF}}
 \description{\packageDescription{readABF}}
 \details{
-Reads ABF2 files created by pClamp 10 and newer and ABF files created by pClamp 9 and older. Currently, code is tested under Linux only. For this purpose, multiple different data sets are used which we cannot include in the package. We would still appreciate to receive further data sets for testing purposes. A reporsitory to upload data sets can be provided at request.
+Reads ABF2 files, created by pClamp 10 and newer, and ABF files, created by pClamp 9 and older. Currently, code is tested under Linux only. For this purpose, multiple data sets are used which cannot be included in the package. We would very much appreciate to receive further data sets for testing purposes. A reporsitory to upload data sets can be provided at request.
 \packageIndices{readABF}
 }
 
-\section{Acknowledgements}{Support of Deutsche Forschungsgemeinschaft grant SFB 803 Z2 is gratefully acknowledged.
+\section{Acknowledgements}{
 
-\href{https://github.com/fcollman/abfload}{abfload.m} by Harald Hentschke, Forrest Collman and Ulrich Egert was an important source of knowledge about the inner workings of the format.
-
-\href{https://cran.r-project.org/web/packages/abf2/index.html}{abf2} by Matthew Caldwell was a source of inspiration.
-
-We would like to thank everyone who provided us with files so we could test our package with different format versions and operation modes.
-
-Last but not least, the documentation provided by Molecular Devices on their site was helpful, too.
+\itemize{
+\item Support of Deutsche Forschungsgemeinschaft grant SFB 803 Z2 is gratefully acknowledged.
+\item \href{https://github.com/fcollman/abfload}{abfload} by Harald Hentschke, Forrest Collman and Ulrich Egert was an important source of information.
+\item \href{https://cran.r-project.org/web/packages/abf2/index.html}{abf2} by Matthew Caldwell was a useful starting point.
+\item We would like to thank Harald Hentschke and his sources and the lab of Claudia Steinem for providing us test data.
+}
 }
 
 \keyword{package}

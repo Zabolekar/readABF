@@ -15,7 +15,7 @@ readABF <- function (file) {
    on.exit(close(f))
 
    header <- list()
-   # some black black magic
+   # auxiliary functions for reading certain byte sequences
    skip <- function (n) invisible(readBin(f, "raw", n=n))
    bool <- function (n=1) as.logical(readBin(f, n=n, "integer", size=1, endian="little"))
    int8 <- function (n=1) readBin(f, n=n, "integer", size=1, endian="little")
@@ -124,7 +124,7 @@ readABF <- function (file) {
       header$lFileStartTime <- header$uFileStartTimeMS*0.001 # convert ms to s
    } else {
       stop("unknown or incompatible file signature")
-      # for example, the signature could be "2FBA" on Mac. We don't implement it because we don't have a Mac to test it
+      # for example, the signature could be "2FBA" on Mac. We did not implement it because we do not have a Mac to test it
    }
 
    sections <- list()
@@ -178,7 +178,6 @@ readABF <- function (file) {
    }
    
    if (header$fFileVersionNumber >= 2) {
-      
       seek(f, 76) # magic number found empirically by the authors of abfload.m
       for (name in section_names) {
          sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(), llNumEntries=int64())
@@ -196,8 +195,8 @@ readABF <- function (file) {
       # `matches` is a boolean matrix with keywords as columns and strings as
       # rows. We expect sum(matches) to always be 1, but sometimes, for reasons
       # we don't understand, it isn't. `abfload.m` gives a warning in this case
-      # ("problems in StringsSection"). We might want to give a warning in the
-      # future, too, but it will be more informative.
+      # ("problems in StringsSection"). We might give a warning in the future,
+      # too.
       
       for (i in seq_along(strings)) {
          if (rowSums(matches)[i] > 0) {
@@ -219,6 +218,8 @@ readABF <- function (file) {
            header$channel_units <- c(header$channel_units, strings[unitsIndex])
          }
          # TODO: variables that aren't really part of the "physical" header don't belong in the header object
+         # Florian's idea: call it ADC_section or whatever it is called in the docs
+         # TODO: same with protocol section and other sections
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
          header$fTelegraphAdditGain[ii] <- ADCsec[[i]]$fTelegraphAdditGain
          header$fInstrumentScaleFactor[ii] <- ADCsec[[i]]$fInstrumentScaleFactor
@@ -329,7 +330,7 @@ readABF <- function (file) {
    # the numerical value of all recorded channels (numbers 0..15)
    recChIdx <- header$nADCSamplingSeq[1:header$nADCNumChannels]
    # the corresponding indices into loaded data d
-   chInd <- 1:length(recChIdx) # TODO: its usage probably can be greatly simplified
+   chInd <- seq(along = recChIdx) # TODO: its usage probably can be greatly simplified
    
    if (header$fFileVersionNumber < 2) {
       # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
@@ -340,7 +341,7 @@ readABF <- function (file) {
    }
    
    # gain of telegraphed instruments, if any
-   if (header$fFileVersionNumber >=1.65) {
+   if (header$fFileVersionNumber >= 1.65) {
       addGain <- header$nTelegraphEnable * header$fTelegraphAdditGain
       addGain[addGain==0] <- 1
    } else {
@@ -388,7 +389,7 @@ readABF <- function (file) {
          )
       }
    }
-   
+
 # -------------------------------------------------------------------------
 #    PART 3: read data (note: from here on code is generic and abf version
 #    should not matter)
@@ -397,24 +398,23 @@ readABF <- function (file) {
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >= 2.0) {
-         stop("This reader currently does not work with data acquired in event-driven variable-length mode", 
+         stop("this reader currently does not work with data acquired in event-driven variable-length mode", 
               " and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
             stop("internal variables 'lSynchArray*' are zero or negative") 
-           #TODO: Is it possible to give a more informative message?
          }
          # the byte offset at which the SynchArraySection starts
          header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
          # before reading Synch Arr parameters check if file is big enough to hold them
          # 4 bytes/long, 2 values per episode (start and length)
          if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
-            stop("file seems not to contain complete Synch Array Section")
+            stop("file does not seem to contain complete Synch Array Section")
          }
          seek(f, header$lSynchArrayPtrByte)
          synchArr <- int32(header$lSynchArraySize*2)
          if (length(synchArr) != header$lSynchArraySize*2) {
-            stop("something went wrong reading synch array section")
+            stop("something went wrong while reading synch array section")
          }
          # make synchArr a header$lSynchArraySize x 2 matrix
          synchArr <- t(matrix(synchArr, nrow=2))
@@ -428,12 +428,12 @@ readABF <- function (file) {
             tmpd <- list(int16=int16, float32=float32)[[precision]](segLengthInPts[sweeps[i]])
             n <- length(tmpd)
             if (n != segLengthInPts[sweeps[i]]) {
-               warning("something went wrong reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]],
+               warning("something went wrong while reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]],
                        " points should have been read, ", n, " points actually read")
             }
             header$dataPtsPerChan <- n/header$nADCNumChannels
             if (n %% header$nADCNumChannels > 0) {
-               stop("number of data points in episode not OK")
+               stop("number of data points in episode is not ok") # TODO: better error message
             }
             # separate channels
             tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
@@ -456,19 +456,19 @@ readABF <- function (file) {
       # 5: waveform fixed-length mode
       # extract timing information on sweeps:
       if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-         stop("internal variables 'lSynchArraynnn' are zero or negative") # TODO: better message if possible
+         stop("internal variables 'lSynchArraynnn' are zero or negative")
       }
       # the byte offset at which the SynchArraySection starts
       header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
       # before reading Synch Arr parameters check if file is big enough to hold them
       # 4 bytes/long, 2 values per episode (start and length)
       if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
-         stop("file seems not to contain complete Synch Array Section")
+         stop("file does not seem to contain complete Synch Array Section")
       }
       seek(f, header$lSynchArrayPtrByte)
       synchArr <- int32(header$lSynchArraySize*2)
       if (length(synchArr) != header$lSynchArraySize*2) {
-         stop("something went wrong reading synch array section")
+         stop("something went wrong while reading synch array section")
       }
       # make synchArr a header$lSynchArraySize x 2 matrix
       synchArr <- t(matrix(synchArr, nrow=2))
@@ -489,7 +489,7 @@ readABF <- function (file) {
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
       if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        stop("number of data points not OK") # TODO: better error message if possible, search for every "stop"
+        stop("number of data points is not ok") # TODO: better error message
       }
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
@@ -502,12 +502,12 @@ readABF <- function (file) {
          tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
          n <- length(tmpd)
          if (n != dataPtsPerSweep) {
-            stop("something went wrong reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read,
+            stop("something went wrong while reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read,
                  ", n, " points actually read")
          }
          header$dataPtsPerChan <- n/header$nADCNumChannels
          if (n %% header$nADCNumChannels > 0) {
-            stop("number of data points in episode not OK")
+            stop("number of data points in episode is not ok") # TODO: better error message
          }
          # separate channels
          tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
@@ -528,7 +528,7 @@ readABF <- function (file) {
       header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
 
       if (header$dataPts %% header$nADCNumChannels > 0) {
-         stop("number of data points not OK")
+        stop("number of data points is not ok") # TODO: better error message
       }
       
       # total length of recording:
@@ -542,7 +542,7 @@ readABF <- function (file) {
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
       n <- length(tmpd)
       if (n != header$dataPts) {
-         stop("something went wrong reading file (", header$dataPts, " points should have been read, ", n,
+         stop("something went wrong while reading file (", header$dataPts, " points should have been read, ", n,
               " points actually read")
       }
       # separate channels
