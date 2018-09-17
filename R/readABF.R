@@ -3,10 +3,12 @@
 readABF <- function (file) {
    BLOCKSIZE <- 512
 
-   section_names <- c("ProtocolSection", "ADCSection", "DACSection", "EpochSection", "ADCPerDACSection",
-                      "EpochPerDACSection", "UserListSection", "StatsRegionSection", "MathSection", "StringsSection",
-                      "DataSection", "TagSection", "ScopeSection", "DeltaSection", "VoiceTagSection", "SynchArraySection",
-                      "AnnotationSection", "StatsSection")
+   section_names <- c("ProtocolSection", "ADCSection", "DACSection",
+                      "EpochSection", "ADCPerDACSection", "EpochPerDACSection",
+                      "UserListSection", "StatsRegionSection", "MathSection",
+                      "StringsSection", "DataSection", "TagSection",
+                      "ScopeSection", "DeltaSection", "VoiceTagSection",
+                      "SynchArraySection", "AnnotationSection", "StatsSection")
   
   
    fileSz <- file.size(file)
@@ -17,13 +19,15 @@ readABF <- function (file) {
    header <- list()
    # auxiliary functions for reading certain byte sequences
    skip <- function (n) invisible(readBin(f, "raw", n=n))
-   bool <- function (n=1) as.logical(readBin(f, n=n, "integer", size=1, endian="little"))
+   bool <- function (n=1) as.logical(readBin(f, n=n, "integer", size=1,
+                                             endian="little"))
    int8 <- function (n=1) readBin(f, n=n, "integer", size=1, endian="little")
    int16 <- function (n=1) readBin(f, n=n, "integer", size=2, endian="little")
    int32 <- function (n=1) readBin(f, n=n, "integer", size=4, endian="little")
    int64 <- function (n=1) readBin(f, n=n, "integer", size=8, endian="little")
    uint32 <- function (n=1) {
-      # you would think: readBin(f, n=n, "integer", size=4, signed=FALSE, endian="little")
+      # you would think:
+      # readBin(f, n=n, "integer", size=4, signed=FALSE, endian="little")
       # but R can't do that
       # instead we do what the author of the abf2 package did:
       # we combine two unsigned integers
@@ -92,10 +96,13 @@ readABF <- function (file) {
    }
 
    `ABF2` <- function () {
-      "uFileVersionNumber" %:% (int8 %x% 4) # name is misleading, u is uint32, but we read four int8's for practical reasons
-      # also it is called fFileVersionNumber in abfload.m for consistency with older versions
+      "uFileVersionNumber" %:% (int8 %x% 4)
+      # name is misleading, u is uint32, but we read four int8's for practical
+      # reasons. also it is called fFileVersionNumber in abfload.m for
+      # consistency with older versions
       "uFileInfoSize" %:% uint32
-      "lActualEpisodes" %:% uint32 # lActualEpisodes instead of uActualEpisodes for uint32 is confusing,
+      "lActualEpisodes" %:% uint32
+      # lActualEpisodes instead of uActualEpisodes for uint32 is confusing,
       # but currently necessary for consistency
       "uFileStartDate" %:% uint32
       "uFileStartTimeMS" %:% uint32
@@ -117,14 +124,18 @@ readABF <- function (file) {
    if (header$fFileSignature == "ABF ") { # note the blank
       `ABF `()
       header$fFileVersionNumber <- round(header$fFileVersionNumber, 2)
-      header$lFileStartTime <- header$lFileStartTime + header$nFileStartMillisecs*0.001
+      header$lFileStartTime <- header$lFileStartTime + 
+                                 header$nFileStartMillisecs*0.001
    } else if (header$fFileSignature == "ABF2") {
       `ABF2`()
-      header$fFileVersionNumber <- sum(header$uFileVersionNumber * (1e-4)*10**(1:4)) # for example, c(5,4,3,2) becomes 2.345
-      header$lFileStartTime <- header$uFileStartTimeMS*0.001 # convert ms to s
+      header$fFileVersionNumber <- sum(header$uFileVersionNumber *
+                                       (1e-4)*10**(1:4))
+                                       # for example, c(5,4,3,2) becomes 2.345
+      header$lFileStartTime <- header$uFileStartTimeMS * 0.001 # convert ms to s
    } else {
       stop("unknown or incompatible file signature")
-      # for example, the signature could be "2FBA" on Mac. We did not implement it because we do not have a Mac to test it
+      # For example, some docs suggest that the signature could be "2FBA" on Mac
+      # We did not implement it because we do not have a Mac to test it
    }
 
    sections <- list()
@@ -180,7 +191,8 @@ readABF <- function (file) {
    if (header$fFileVersionNumber >= 2) {
       seek(f, 76) # magic number found empirically by the authors of abfload.m
       for (name in section_names) {
-         sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(), llNumEntries=int64())
+         sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(),
+                                  llNumEntries=int64())
       }
       seek(f, sections$StringsSection$uBlockIndex*BLOCKSIZE)
       strings <- readBin(f, what="character", sections$StringsSection$uBytes)
@@ -208,17 +220,20 @@ readABF <- function (file) {
       ADCsec <- list()
       
       for (i in 1:sections$ADCSection$llNumEntries) {
-         ADCsec[[i]] <- ADC_info(sections$ADCSection$uBlockIndex*BLOCKSIZE+sections$ADCSection$uBytes*(i-1))
+         ADCsec[[i]] <- ADC_info(sections$ADCSection$uBlockIndex * BLOCKSIZE +
+                                    sections$ADCSection$uBytes * (i-1))
          ii <- ADCsec[[i]]$nADCNum+1
          header$nADCSamplingSeq[i] <- ADCsec[[i]]$nADCNum
          
-         header$channel_names <- c(header$channel_names, strings[ADCsec[[i]]$lADCChannelNameIndex]) 
+         header$channel_names <- c(header$channel_names,
+                                   strings[ADCsec[[i]]$lADCChannelNameIndex]) 
          unitsIndex <- ADCsec[[i]]$lADCUnitsIndex
          if (unitsIndex > 0) {
            header$channel_units <- c(header$channel_units, strings[unitsIndex])
          }
-         # TODO: variables that aren't really part of the "physical" header don't belong in the header object
-         # Florian's idea: call it ADC_section or whatever it is called in the docs
+         # TODO: variables that aren't really part of the "physical" header
+         # don't belong in the header object
+         # Florian's idea: call it ADC_section or whatever the docs call it
          # TODO: same with protocol section and other sections
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
          header$fTelegraphAdditGain[ii] <- ADCsec[[i]]$fTelegraphAdditGain
@@ -311,7 +326,8 @@ readABF <- function (file) {
       header$lDataSectionPtr <- sections$DataSection$uBlockIndex
       header$nNumPointsIgnored <- 0
       
-      header$fADCSampleInterval <- ProtocolSec$fADCSequenceInterval/header$nADCNumChannels
+      header$fADCSampleInterval <- ProtocolSec$fADCSequenceInterval / 
+                                    header$nADCNumChannels
       header$fADCRange <- ProtocolSec$fADCRange
       header$lADCResolution <- ProtocolSec$lADCResolution
       
@@ -330,7 +346,8 @@ readABF <- function (file) {
    # the numerical value of all recorded channels (numbers 0..15)
    recChIdx <- header$nADCSamplingSeq[1:header$nADCNumChannels]
    # the corresponding indices into loaded data d
-   chInd <- seq(along = recChIdx) # TODO: its usage probably can be greatly simplified
+   chInd <- seq(along = recChIdx)
+   # TODO: the usage of chInd and recChIdx can probably be greatly simplified
    
    if (header$fFileVersionNumber < 2) {
       # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
@@ -360,7 +377,8 @@ readABF <- function (file) {
       stop("invalid number format")
    }
 
-   headOffset <- header$lDataSectionPtr*BLOCKSIZE + header$nNumPointsIgnored*dataSz
+   headOffset <- header$lDataSectionPtr*BLOCKSIZE +
+                     header$nNumPointsIgnored*dataSz
    # header$fADCSampleInterval is the TOTAL sampling interval
    header$si <- header$fADCSampleInterval * header$nADCNumChannels
    nSweeps <- header$lActualEpisodes
@@ -380,12 +398,13 @@ readABF <- function (file) {
    if (sections$TagSection$llNumEntries > 0) {
       tmp <- list()
       for (i in 1:sections$TagSection$llNumEntries) {
-         tmp[[i]] <- Tag_info(sections$TagSection$uBlockIndex*BLOCKSIZE+sections$TagSection$uBytes*(i-1))
-         # time of tag entry from start of experiment in s (corresponding expisode
-         # number, if applicable, will be determined later)
+         tmp[[i]] <- Tag_info(sections$TagSection$uBlockIndex * BLOCKSIZE + 
+                                 sections$TagSection$uBytes * (i-1))
+         # time of tag entry from start of experiment in s (corresponding
+         # expisode number, if applicable, will be determined later)
          header$tags[[i]] <- list(
-            timeSinceRecStart=tmp$lTagTime*header$synchArrTimeBase/1e6,
-            comment=tmp$sComment
+            timeSinceRecStart = tmp$lTagTime * header$synchArrTimeBase / 1e6,
+            comment = tmp$sComment
          )
       }
    }
@@ -398,15 +417,16 @@ readABF <- function (file) {
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >= 2.0) {
-         stop("this reader currently does not work with data acquired in event-driven variable-length mode", 
-              " and ABF version 2.0")
+         stop("this reader currently does not work with data acquired in ", 
+              "event-driven variable-length mode and ABF version 2.0")
       } else {
          if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
             stop("internal variables 'lSynchArray*' are zero or negative") 
          }
          # the byte offset at which the SynchArraySection starts
          header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
-         # before reading Synch Arr parameters check if file is big enough to hold them
+         # before reading Synch Arr parameters check if the file is big enough
+         # to hold them
          # 4 bytes/long, 2 values per episode (start and length)
          if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
             stop("file does not seem to contain complete Synch Array Section")
@@ -424,26 +444,38 @@ readABF <- function (file) {
          seek(f, headOffset)
          
          d <- list()
-         for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
-            tmpd <- list(int16=int16, float32=float32)[[precision]](segLengthInPts[sweeps[i]])
+         for (i in seq(from=1, length.out=nSweeps)) {
+            # seq because sometimes nSweeps is 0
+            reader_function <- list(int16=int16, float32=float32)[[precision]]
+            tmpd <- reader_function(segLengthInPts[sweeps[i]])
             n <- length(tmpd)
             if (n != segLengthInPts[sweeps[i]]) {
-               warning("something went wrong while reading episode ", sweeps[i], ": ", segLengthInPts[sweeps[i]],
-                       " points should have been read, ", n, " points actually read")
+               warning("something went wrong while reading episode ", sweeps[i],
+                       ": ", segLengthInPts[sweeps[i]],
+                       " points should have been read, ",
+                       n, " points actually read")
             }
             header$dataPtsPerChan <- n/header$nADCNumChannels
             if (n %% header$nADCNumChannels > 0) {
-               stop("number of data points in episode is not ok") # TODO: better error message
+               stop("number of data points in episode is not ok")
+               # TODO: better error message
             }
             # separate channels
-            tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
-            # if data format is integer, scale appropriately; if it's float, tmpd is fine
+            tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels,
+                           byrow=TRUE)
+            # if data format is integer, we scale it appropriately
+            # if it's float, tmpd is fine
             if (!header$nDataFormat) {
                for (j in 1:length(chInd)) {
                   ch <- recChIdx[chInd[j]]+1
-                  tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*
-                                          header$fADCProgrammableGain[ch]*addGain[ch])*
-                    header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+                  tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch] *
+                                          header$fSignalGain[ch] *
+                                             header$fADCProgrammableGain[ch] *
+                                                addGain[ch]) *
+                                        header$fADCRange /
+                                          header$lADCResolution + 
+                                             header$fInstrumentOffset[ch] - 
+                                                header$fSignalOffset[ch]
                }
             }
             # tmpd consists of one sweep with channels in columns
@@ -460,7 +492,8 @@ readABF <- function (file) {
       }
       # the byte offset at which the SynchArraySection starts
       header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
-      # before reading Synch Arr parameters check if file is big enough to hold them
+      # before reading Synch Arr parameters check whether the file is big enough
+      # to hold them
       # 4 bytes/long, 2 values per episode (start and length)
       if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
          stop("file does not seem to contain complete Synch Array Section")
@@ -479,16 +512,23 @@ readABF <- function (file) {
       # the ABF synch section is expressed in samples (ticks) whereas
       # parameter lStart is given in synchArrTimeBase units)
       header$sweepLengthInPts <- synchArr[1,2]/header$nADCNumChannels
-      # the starting ticks of episodes in sample points (t0=1=beginning of recording)
-      header$sweepStartInPts <- synchArr[,1]*(header$synchArrTimeBase/header$fADCSampleInterval/header$nADCNumChannels)
+      # the starting ticks of episodes in sample points (t0 = 1 is the beginning
+      # of recording)
+      header$sweepStartInPts <- synchArr[,1] * (header$synchArrTimeBase / 
+                                                   header$fADCSampleInterval / 
+                                                      header$nADCNumChannels)
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
       tmpvar <- header$sweepStartInPts[length(header$sweepStartInPts)]
-      header$recTime <- header$recTime + c(0, (1e-6*(tmpvar+header$sweepLengthInPts))*header$fADCSampleInterval*
-                                             header$nADCNumChannels)
+      header$recTime <- header$recTime + c(0,
+                                          (1e-6 * (tmpvar + 
+                                             header$sweepLengthInPts)) * 
+                                                header$fADCSampleInterval *
+                                                   header$nADCNumChannels)
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
-      if (header$dataPts %% header$nADCNumChannels > 0 || header$dataPtsPerChan %% header$lActualEpisodes > 0) {
+      if (header$dataPts %% header$nADCNumChannels > 0 ||
+            header$dataPtsPerChan %% header$lActualEpisodes > 0) {
         stop("number of data points is not ok") # TODO: better error message
       }
       # temporary helper var
@@ -497,27 +537,38 @@ readABF <- function (file) {
       d <- list()
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
       selectedSegStartInPts <- (sweeps-1)*dataPtsPerSweep*dataSz + headOffset      
-      for (i in seq(from=1, length.out=nSweeps)) { # because nSweeps sometimes is 0
+      for (i in seq(from=1, length.out=nSweeps)) {
+         # seq because sometimes nSweeps is 0
          seek(f, selectedSegStartInPts[i])
-         tmpd <- list(int16=int16, float32=float32)[[precision]](dataPtsPerSweep)
+         reader_function <- list(int16=int16, float32=float32)[[precision]]
+         tmpd <- reader_function(dataPtsPerSweep)
          n <- length(tmpd)
          if (n != dataPtsPerSweep) {
-            stop("something went wrong while reading episode ", sweeps[i], ": ", dataPtsPerSweep, " points should have been read,
-                 ", n, " points actually read")
+            stop("something went wrong while reading episode ", sweeps[i],
+                 ": ", dataPtsPerSweep, " points should have been read, ",
+                 n, " points actually read")
          }
          header$dataPtsPerChan <- n/header$nADCNumChannels
          if (n %% header$nADCNumChannels > 0) {
-            stop("number of data points in episode is not ok") # TODO: better error message
+            stop("number of data points in episode is not ok")
+            # TODO: better error message
          }
          # separate channels
-         tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
-         # if data format is integer, scale appropriately; if it's float, d is fine
+         tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels,
+                        byrow=TRUE)
+         # if data format is integer, we scale it appropriately
+         # if it's float, d is fine
          if (!header$nDataFormat) {
             for (j in 1:length(chInd)) {
                ch <- recChIdx[chInd[j]] + 1
-               tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*
-                                       header$fADCProgrammableGain[ch]*addGain[ch])*
-                 header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+               tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch] * 
+                                       header$fSignalGain[ch] *
+                                          header$fADCProgrammableGain[ch] *
+                                             addGain[ch]) *
+                                      header$fADCRange /
+                                       header$lADCResolution + 
+                                          header$fInstrumentOffset[ch] - 
+                                             header$fSignalOffset[ch]
             }
          }
          d[[i]] <- tmpd
@@ -531,30 +582,37 @@ readABF <- function (file) {
         stop("number of data points is not ok") # TODO: better error message
       }
       
-      # total length of recording:
-      totalLength <- 1e-6*header$lActualAcqLength*header$fADCSampleInterval # unit: seconds
+      # total length of recording, unit: seconds
+      total_length <- 1e-6 * header$lActualAcqLength * header$fADCSampleInterval
       
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
-      header$recTime <- c(header$recTime, header$recTime+totalLength) 
+      header$recTime <- c(header$recTime, header$recTime + total_length) 
       seek(f, headOffset)
 
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
       n <- length(tmpd)
       if (n != header$dataPts) {
-         stop("something went wrong while reading file (", header$dataPts, " points should have been read, ", n,
-              " points actually read")
+         stop("something went wrong while reading file (", header$dataPts,
+              " points should have been read, ", n, " points actually read")
       }
       # separate channels
-      tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels, byrow=TRUE)
+      tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels,
+                     byrow=TRUE)
 
-      # if data format is integer, scale appropriately; if it's float, d is fine
+      # if data format is integer, we scale it appropriately
+      # if it's float, d is fine
       if (!header$nDataFormat) {
          for (j in 1:length(chInd)) {
             ch <- recChIdx[chInd[j]]+1
-            tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch]*header$fSignalGain[ch]*header$fADCProgrammableGain[ch]*
-                                 addGain[ch])*
-              header$fADCRange/header$lADCResolution+header$fInstrumentOffset[ch]-header$fSignalOffset[ch]
+            tmpd[,j] <- tmpd[,j]/(header$fInstrumentScaleFactor[ch] * 
+                                    header$fSignalGain[ch] * 
+                                       header$fADCProgrammableGain[ch] *
+                                          addGain[ch]) *
+                                    header$fADCRange / 
+                                       header$lADCResolution + 
+                                          header$fInstrumentOffset[ch] -
+                                             header$fSignalOffset[ch]
          }
       }
 
@@ -568,7 +626,8 @@ readABF <- function (file) {
    # finally, possibly add information on episode number to tags
    if (length(header$tags) > 0 && !is.null(header$sweepStartInPts)) {
      for (i in 1:length(header$tags)) {
-       tmp <- which(header$tags[[i]]$timeSinceRecStart >= header$sweepStartInPts/1e6*header$si)
+       tmp <- which(header$tags[[i]]$timeSinceRecStart >=
+                        header$sweepStartInPts / 1e6 * header$si)
        header$tags[[i]]$episodeIndex <- tmp[length(tmp)]
       }
    }
