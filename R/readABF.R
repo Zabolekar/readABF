@@ -395,18 +395,15 @@ readABF <- function (file) {
 
    # read in the TagSection, do a few computations & write to header$tags
    header$tags <- list()
-   if (sections$TagSection$llNumEntries > 0) {
-      tmp <- list()
-      for (i in 1:sections$TagSection$llNumEntries) {
-         tmp[[i]] <- Tag_info(sections$TagSection$uBlockIndex * BLOCKSIZE + 
-                                 sections$TagSection$uBytes * (i-1))
-         # time of tag entry from start of experiment in s (corresponding
-         # expisode number, if applicable, will be determined later)
-         header$tags[[i]] <- list(
-            timeSinceRecStart = tmp$lTagTime * header$synchArrTimeBase / 1e6,
-            comment = tmp$sComment
-         )
-      }
+   for (i in seq(length.out=sections$TagSection$llNumEntries)) {
+      tmp <- Tag_info(sections$TagSection$uBlockIndex * BLOCKSIZE + 
+                              sections$TagSection$uBytes * (i-1))
+      # time of tag entry from start of experiment in s (corresponding
+      # expisode number, if applicable, will be determined later)
+      header$tags[[i]] <- list(
+         timeSinceRecStart = tmp$lTagTime * header$synchArrTimeBase / 1e6,
+         comment = paste(tmp$sComment, collapse="")
+      )
    }
 
 # -------------------------------------------------------------------------
@@ -444,7 +441,7 @@ readABF <- function (file) {
          seek(f, headOffset)
          
          d <- list()
-         for (i in seq(from=1, length.out=nSweeps)) {
+         for (i in seq(length.out=nSweeps)) {
             # seq because sometimes nSweeps is 0
             reader_function <- list(int16=int16, float32=float32)[[precision]]
             tmpd <- reader_function(segLengthInPts[sweeps[i]])
@@ -537,7 +534,7 @@ readABF <- function (file) {
       d <- list()
       # the starting ticks of episodes in sample points WITHIN THE DATA FILE
       selectedSegStartInPts <- (sweeps-1)*dataPtsPerSweep*dataSz + headOffset      
-      for (i in seq(from=1, length.out=nSweeps)) {
+      for (i in seq(length.out=nSweeps)) {
          # seq because sometimes nSweeps is 0
          seek(f, selectedSegStartInPts[i])
          reader_function <- list(int16=int16, float32=float32)[[precision]]
