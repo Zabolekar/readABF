@@ -388,13 +388,13 @@ readABF <- function (file) {
    }
 
    # read in the TagSection, do a few computations & write to header$tags
-   header$tags <- list()
+   tags <- list()
    for (i in seq(length.out=sections$TagSection$llNumEntries)) {
       tmp <- Tag_info(sections$TagSection$uBlockIndex * BLOCKSIZE + 
                               sections$TagSection$uBytes * (i-1))
       # time of tag entry from start of experiment in s (corresponding
       # expisode number, if applicable, will be determined later)
-      header$tags[[i]] <- list(
+      tags[[i]] <- list(
          timeSinceRecStart = tmp$lTagTime * header$synchArrTimeBase / 1e6,
          comment = paste(tmp$sComment, collapse="")
       )
@@ -603,11 +603,11 @@ readABF <- function (file) {
    }
 
    # finally, possibly add information on episode number to tags
-   if (length(header$tags) > 0 && !is.null(header$sweepStartInPts)) {
-     for (i in 1:length(header$tags)) {
-       tmp <- which(header$tags[[i]]$timeSinceRecStart >=
+   if (length(tags) > 0 && !is.null(header$sweepStartInPts)) {
+     for (i in 1:length(tags)) {
+       tmp <- which(tags[[i]]$timeSinceRecStart >=
                         header$sweepStartInPts / 1e6 * header$si)
-       header$tags[[i]]$episodeIndex <- tmp[length(tmp)]
+       tags[[i]]$episodeIndex <- tmp[length(tmp)]
       }
    }
    
@@ -616,7 +616,8 @@ readABF <- function (file) {
       format_version = sprintf("%.2f", header$fFileVersionNumber),
       header = header,
       data = d,
-      nSweeps = nSweeps
+      nSweeps = nSweeps,
+      tags = tags
    )
    class(result) <- "ABF"
    result
