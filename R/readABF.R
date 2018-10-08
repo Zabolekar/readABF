@@ -1,5 +1,3 @@
-# TODO: copy some comments from matlab to here, but adapt them
-
 readABF <- function (file) {
    BLOCKSIZE <- 512
 
@@ -231,10 +229,7 @@ readABF <- function (file) {
          if (unitsIndex > 0) {
            header$channel_units <- c(header$channel_units, strings[unitsIndex])
          }
-         # TODO: variables that aren't really part of the "physical" header
-         # don't belong in the header object
-         # Florian's idea: call it ADC_section or whatever the docs call it
-         # TODO: same with protocol section and other sections
+
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
          header$fTelegraphAdditGain[ii] <- ADCsec[[i]]$fTelegraphAdditGain
          header$fInstrumentScaleFactor[ii] <- ADCsec[[i]]$fInstrumentScaleFactor
@@ -347,7 +342,6 @@ readABF <- function (file) {
    recChIdx <- header$nADCSamplingSeq[1:header$nADCNumChannels]
    # the corresponding indices into loaded data d
    chInd <- seq(along = recChIdx)
-   # TODO: the usage of chInd and recChIdx can probably be greatly simplified
    
    if (header$fFileVersionNumber < 2) {
       # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
@@ -445,7 +439,7 @@ readABF <- function (file) {
             # seq because sometimes nSweeps is 0
             reader_function <- list(int16=int16, float32=float32)[[precision]]
             tmpd <- reader_function(segLengthInPts[sweeps[i]])
-            n <- length(tmpd)
+            n <- length(tmpd) # should be a multiple of header$nADCNumChannels
             if (n != segLengthInPts[sweeps[i]]) {
                warning("something went wrong while reading episode ", sweeps[i],
                        ": ", segLengthInPts[sweeps[i]],
@@ -453,10 +447,6 @@ readABF <- function (file) {
                        n, " points actually read")
             }
             header$dataPtsPerChan <- n/header$nADCNumChannels
-            if (n %% header$nADCNumChannels > 0) {
-               stop("number of data points in episode is not ok")
-               # TODO: better error message
-            }
             # separate channels
             tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels,
                            byrow=TRUE)
@@ -524,10 +514,9 @@ readABF <- function (file) {
                                                    header$nADCNumChannels)
       header$dataPts <- header$lActualAcqLength
       header$dataPtsPerChan <- header$dataPts/header$nADCNumChannels
-      if (header$dataPts %% header$nADCNumChannels > 0 ||
-            header$dataPtsPerChan %% header$lActualEpisodes > 0) {
-        stop("number of data points is not ok") # TODO: better error message
-      }
+      # header$dataPts should be a multiple of header$nADCNumChannels,
+      # header$dataPtsPerChan a multiple of header$lActualEpisodes
+
       # temporary helper var
       dataPtsPerSweep <- header$sweepLengthInPts*header$nADCNumChannels
       seek(f, headOffset)
@@ -539,17 +528,13 @@ readABF <- function (file) {
          seek(f, selectedSegStartInPts[i])
          reader_function <- list(int16=int16, float32=float32)[[precision]]
          tmpd <- reader_function(dataPtsPerSweep)
-         n <- length(tmpd)
+         n <- length(tmpd) # n should be a multiple of header$nADCNumChannels
          if (n != dataPtsPerSweep) {
             stop("something went wrong while reading episode ", sweeps[i],
                  ": ", dataPtsPerSweep, " points should have been read, ",
                  n, " points actually read")
          }
          header$dataPtsPerChan <- n/header$nADCNumChannels
-         if (n %% header$nADCNumChannels > 0) {
-            stop("number of data points in episode is not ok")
-            # TODO: better error message
-         }
          # separate channels
          tmpd <- matrix(tmpd, header$dataPtsPerChan, header$nADCNumChannels,
                         byrow=TRUE)
@@ -574,10 +559,7 @@ readABF <- function (file) {
 
       header$dataPtsPerChan <- header$lActualAcqLength/header$nADCNumChannels
       header$dataPts <- header$dataPtsPerChan * header$nADCNumChannels
-
-      if (header$dataPts %% header$nADCNumChannels > 0) {
-        stop("number of data points is not ok") # TODO: better error message
-      }
+      # header$dataPts should be a multiple of header$nADCNumChannels
       
       # total length of recording, unit: seconds
       total_length <- 1e-6 * header$lActualAcqLength * header$fADCSampleInterval
