@@ -356,7 +356,7 @@ readABF <- function (file) {
       addGain <- header$nTelegraphEnable * header$fTelegraphAdditGain
       addGain[addGain==0] <- 1
    } else {
-      # this line wasn't tested because we don't have files that old
+      # this line is not tested because we don't have files that old
       addGain <- rep(1, length(header$fTelegraphAdditGain))
    }
    
@@ -374,14 +374,15 @@ readABF <- function (file) {
    headOffset <- header$lDataSectionPtr*BLOCKSIZE +
                      header$nNumPointsIgnored*dataSz
    # header$fADCSampleInterval is the TOTAL sampling interval
+   # header$si is the sampling interval in us
    header$si <- header$fADCSampleInterval * header$nADCNumChannels
    nSweeps <- header$lActualEpisodes
    sweeps <- 1:nSweeps
-   
+
    # determine time unit in synch array section
    if (header$fSynchTimeUnit == 0) {
-       # time information in synch array section is in terms of ticks
-       header$synchArrTimeBase <- 1
+      # time information in synch array section is in terms of ticks
+      header$synchArrTimeBase <- 1
    } else {
       # time information in synch array section is in terms of usec
       header$synchArrTimeBase <- header$fSynchTimeUnit
@@ -404,7 +405,7 @@ readABF <- function (file) {
 #    PART 3: read data (note: from here on code is generic and abf version
 #    should not matter)
 # -------------------------------------------------------------------------
-   
+
    if (header$nOperationMode == 1) {
       # data were acquired in event-driven variable-length mode
       if (header$fFileVersionNumber >= 2.0) {
@@ -616,7 +617,6 @@ readABF <- function (file) {
       format_version = sprintf("%.2f", header$fFileVersionNumber),
       header = header,
       data = d,
-      nSweeps = nSweeps,
       tags = tags
    )
    class(result) <- "ABF"

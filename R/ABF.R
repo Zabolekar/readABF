@@ -49,19 +49,13 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
 
       } else if (length(channels) == 2) {
 
+         # the names current, voltage and conductance are due to historical
+         # reasons, there were times when this part of function code was used
+         # to calculate the conductance
          current <- channels[1]
          voltage <- channels[2]
-
          current_unit <- trimws(x$header$channel_units[current])
-         if (!grepl("A", current_unit)) {
-            warning("channel ", current, " has unit ", current_unit,
-                  " and might not contain current")
-         }
          voltage_unit <- trimws(x$header$channel_units[voltage])
-         if (!grepl("V", voltage_unit)) {
-            warning("channel ", voltage, " has unit ", voltage_unit,
-                  " and might not contain voltage")
-         }
 
          if (is.null(unit)) {
             unit <- paste0(current_unit, "/", voltage_unit)
@@ -71,7 +65,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
          current_data <- m[,current]
          voltage_data <- m[,voltage]
          conductance_data <- current_data/voltage_data
-         result[[paste0("Conductance [", unit, "]")]] <- conductance_data
+         result[[paste0("Data [", unit, "]")]] <- conductance_data
 
       } else {
          stop('argument "channels" should be of length 1 or 2')

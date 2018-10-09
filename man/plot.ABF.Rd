@@ -26,6 +26,6 @@ r <- readABF("some_data.abf")
 plot(r)
 
 # leads to the same result
-plot(as.data.frame(r))
+plot(as.data.frame(r), pch = ".")
 }
 }

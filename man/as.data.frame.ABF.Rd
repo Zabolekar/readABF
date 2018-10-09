@@ -17,7 +17,7 @@ type = c("all", "one"), channels, unit = NULL)
   \item{sweep}{an integer, indicating which sweep should be coerced; required in case of multiple sweeps, otherwise ignored.}
   \item{type}{a string specifying the return value, see \sQuote{Value}.}
   \item{channels}{an integer vector of length one or two; required if \code{type == "one"}, otherwise ignored, see \sQuote{Value}.}
-  \item{unit}{a string, specifying the unit of one, if \code{NULL} unit will be determined by current and voltage units in \code{x};
+  \item{unit}{a string, specifying the unit of one, if \code{NULL} unit will be determined by units in \code{x};
   ignored if \code{type == "all"}}
 }
 
@@ -28,12 +28,7 @@ Column names are accompanied by their units.
 
 If \code{type == "all"}, all channels are added to the resulting data frame. Their units are copied from the ABF object.
 
-If \code{type == "one"}, the resulting data frame only contains the time (see above) and one additional column with the actual data, 
-whereby \code{channels}, a vector of integers, specifies what to read. If \code{channels} contains one index, then that channel is used 
-for the data column. If \code{channels} contains two indices, we assume that the first index points to the channel that contains the current, 
-that the second index points to the channel that contains the voltage and that the user wants the data column to contain the conductance, 
-defined as the ratio of current to voltage. The unit of the data column is either provided by \code{unit} or, if not provided, read from the
-ABF object. For conductance, the ratio of the voltage unit to the current unit (as read from the ABF object) is used.
+If \code{type == "one"}, the resulting data frame only contains the time (see above) and one additional column with the actual data, whereby \code{channels}, a vector of integers, specifies what to read. If \code{channels} contains one index, then that channel is used for the data column. If \code{channels} contains two indices, then the data of the first channel is divided by the data of the second channel. This might be for instance helpful to obtain conductance by dividing a channel containing current values by a channel containing voltage values. The unit of the data column is either provided by \code{unit} or, if not provided, the ratio of the two units (as read from the ABF object) is given.
 }
 
 \examples{
