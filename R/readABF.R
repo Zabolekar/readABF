@@ -395,8 +395,20 @@ readABF <- function (file) {
                               sections$TagSection$uBytes * (i-1))
       # time of tag entry from start of experiment in s (corresponding
       # expisode number, if applicable, will be determined later)
+      timeSinceRecStart <- if (header$fFileVersionNumber >= 2) {
+         tmp$lTagTime * ProtocolSec$fADCSequenceInterval /
+            (1e6 * sections$ADCSection$llNumEntries)
+         # this part works like in abf2, not like in abfload.m, because
+         # we've found that abf2 produces more plausible results for time in
+         # tags (but only for 2.xx, because it can't read 1.xx at all)
+      } else {
+         # on the other hand, we are reasonably sure that abfload.m produces
+         # correct time values for 1.xx (because we have a file where time is
+         # also mentioned in the tag comments)
+         tmp$lTagTime * header$synchArrTimeBase / 1e6
+      }
       tags[[i]] <- list(
-         timeSinceRecStart = tmp$lTagTime * header$synchArrTimeBase / 1e6,
+         timeSinceRecStart = timeSinceRecStart,
          comment = paste(tmp$sComment, collapse="")
       )
    }
