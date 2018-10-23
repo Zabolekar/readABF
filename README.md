@@ -48,7 +48,7 @@ Currently, code is tested under Linux only. This package is tested with the foll
 
 Episodic stimulation mode is also sometimes called waveform fixed-length mode. High-speed oscilloscope mode is not tested due to lack of sample files.
 
-We would very much appreciate to receive further data sets for testing purposes. A reporsitory to upload data sets can be provided at request.
+We would very much appreciate to receive further data sets for testing purposes. A repository to upload data sets can be provided at request.
 
 ## Acknowledgements
 

@@ -1,6 +1,6 @@
 \name{print.ABF}
 \alias{print.ABF}
-\title{Prints a Short Decription of an ABF Object}
+\title{Prints a Short Description of an ABF Object}
 \description{
 Prints information about an \code{\link[=readABF]{ABF}} object and returns it invisibly. This helps to identify the dataset but does not overwhelm the user with the raw data.
 }

@@ -8,7 +8,7 @@ readABF <- function (file) {
                       "ScopeSection", "DeltaSection", "VoiceTagSection",
                       "SynchArraySection", "AnnotationSection", "StatsSection")
   
-  
+
    fileSz <- file.size(file)
 
    f <- file(file, open="rb")
@@ -488,7 +488,7 @@ readABF <- function (file) {
       # 5: waveform fixed-length mode
       # extract timing information on sweeps:
       if (header$lSynchArrayPtr <= 0 || header$lSynchArraySize <= 0) {
-         stop("internal variables 'lSynchArraynnn' are zero or negative")
+         stop("internal variables 'lSynchArray*' are zero or negative")
       }
       # the byte offset at which the SynchArraySection starts
       header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
