@@ -13,7 +13,7 @@ Reads ABF2 files, created by pClamp 10 and newer, and ABF files, created by pCla
 \itemize{
 \item Support of Deutsche Forschungsgemeinschaft grant SFB 803 Z2 is gratefully acknowledged.
 \item \href{https://github.com/fcollman/abfload}{abfload} by Harald Hentschke, Forrest Collman and Ulrich Egert was an important source of information.
-\item \href{https://cran.r-project.org/web/packages/abf2/index.html}{abf2} by Matthew Caldwell was a useful starting point.
+\item \href{https://CRAN.R-project.org/package=abf2}{abf2} by Matthew Caldwell was a useful starting point.
 \item We would like to thank Harald Hentschke and his sources and the lab of Claudia Steinem for providing test data.
 }
 }

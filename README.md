@@ -21,7 +21,7 @@ plot(r)
 
 ## Difference to other packages
 
-- [abf2](https://cran.r-project.org/web/packages/abf2/index.html), an R package by Matthew Caldwell: while `abf2` only reads ABF2 files created by pClamp 10 and newer, we also support ABF files created by pClamp 9 and older, especially ABF version 1.83.
+- [abf2](https://CRAN.R-project.org/package=abf2), an R package by Matthew Caldwell: while `abf2` only reads ABF2 files created by pClamp 10 and newer, we also support ABF files created by pClamp 9 and older, especially ABF version 1.83.
 
 - [abfload](https://github.com/fcollman/abfload), a MATLAB function by Harald Hentschke, Forrest Collman and Ulrich Egert: we try to read at leastn everything that `abfload` is able to read. However, `abfload` had some updates in 2017 which we haven't incorporated so far.
 
