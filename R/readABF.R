@@ -7,9 +7,6 @@ readABF <- function (file) {
                       "StringsSection", "DataSection", "TagSection",
                       "ScopeSection", "DeltaSection", "VoiceTagSection",
                       "SynchArraySection", "AnnotationSection", "StatsSection")
-  
-
-   fileSz <- file.size(file)
 
    f <- file(file, open="rb")
    on.exit(close(f))
@@ -429,12 +426,9 @@ readABF <- function (file) {
          }
          # the byte offset at which the SynchArraySection starts
          header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
-         # before reading Synch Arr parameters check if the file is big enough
-         # to hold them
          # 4 bytes/long, 2 values per episode (start and length)
-         if (header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize < fileSz) {
-            stop("file does not seem to contain complete Synch Array Section")
-         }
+         # the file should be at least this large:
+         # header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize
          seek(f, header$lSynchArrayPtrByte)
          synchArr <- int32(header$lSynchArraySize*2)
          if (length(synchArr) != header$lSynchArraySize*2) {
@@ -492,12 +486,9 @@ readABF <- function (file) {
       }
       # the byte offset at which the SynchArraySection starts
       header$lSynchArrayPtrByte <- BLOCKSIZE*header$lSynchArrayPtr
-      # before reading Synch Arr parameters check whether the file is big enough
-      # to hold them
       # 4 bytes/long, 2 values per episode (start and length)
-      if (header$lSynchArrayPtrByte+2*4*header$lSynchArraySize > fileSz) {
-         stop("file does not seem to contain complete Synch Array Section")
-      }
+      # the file should be at least this large:
+      # header$lSynchArrayPtrByte + 2*4*header$lSynchArraySize
       seek(f, header$lSynchArrayPtrByte)
       synchArr <- int32(header$lSynchArraySize*2)
       if (length(synchArr) != header$lSynchArraySize*2) {
