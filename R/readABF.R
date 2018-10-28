@@ -1,7 +1,7 @@
 readABF <- function (file) {
    BLOCKSIZE <- 512
 
-   section_names <- c("ProtocolSection", "ADCSection", "DACSection",
+   sectionNames <- c("ProtocolSection", "ADCSection", "DACSection",
                       "EpochSection", "ADCPerDACSection", "EpochPerDACSection",
                       "UserListSection", "StatsRegionSection", "MathSection",
                       "StringsSection", "DataSection", "TagSection",
@@ -135,14 +135,16 @@ readABF <- function (file) {
 
    sections <- list()
    
-   # in abfload.m they are called recChNames and recChUnits
-   header$channel_names <- c()
-   header$channel_units <- c()
+   # in abfload.m they are called h.recChNames and h.recChUnits
+   channelNames <- c()
+   channelUnits <- c()
    
 
-   ADC_info <- function (offset) {
+   ADCInfo <- function (offset) {
       seek(f, offset)
       list(
+         # as for everything filter-related: sadly, we don't know yet how to
+         # turn those floats into something meaningful, but we read them anyway
          nADCNum=int16(),
          nTelegraphEnable=int16(),
          nTelegraphInstrument=int16(),
@@ -173,19 +175,19 @@ readABF <- function (file) {
       )
    }
    
-   Tag_info <- function (offset) {
+   TagInfo <- function (offset) {
       seek(f, offset)
       list(
          lTagTime=int32(),
          sComment=(char %x% 56)(),
          nTagType=int16(),
-         nVoiceTagNumber_or_AnnotationIndex=int16()
+         nVoiceTagNumberOrAnnotationIndex=int16()
       )
    }
    
    if (header$fFileVersionNumber >= 2) {
       seek(f, 76) # magic number found empirically by the authors of abfload.m
-      for (name in section_names) {
+      for (name in sectionNames) {
          sections[[name]] <- list(uBlockIndex=uint32(), uBytes=uint32(),
                                   llNumEntries=int64())
       }
@@ -215,16 +217,16 @@ readABF <- function (file) {
       ADCsec <- list()
       
       for (i in 1:sections$ADCSection$llNumEntries) {
-         ADCsec[[i]] <- ADC_info(sections$ADCSection$uBlockIndex * BLOCKSIZE +
+         ADCsec[[i]] <- ADCInfo(sections$ADCSection$uBlockIndex * BLOCKSIZE +
                                     sections$ADCSection$uBytes * (i-1))
          ii <- ADCsec[[i]]$nADCNum+1
          header$nADCSamplingSeq[i] <- ADCsec[[i]]$nADCNum
          
-         header$channel_names <- c(header$channel_names,
+         channelNames <- c(channelNames,
                                    strings[ADCsec[[i]]$lADCChannelNameIndex]) 
          unitsIndex <- ADCsec[[i]]$lADCUnitsIndex
          if (unitsIndex > 0) {
-           header$channel_units <- c(header$channel_units, strings[unitsIndex])
+           channelUnits <- c(channelUnits, strings[unitsIndex])
          }
 
          header$nTelegraphEnable[ii] <- ADCsec[[i]]$nTelegraphEnable
@@ -343,9 +345,9 @@ readABF <- function (file) {
    if (header$fFileVersionNumber < 2) {
       # the channel names, e.g. "IN 8" (for ABF version 2.0 these have been
       # extracted above at this point)
-      header$channel_names <- header$sADCChannelName[recChIdx+1]
+      channelNames <- header$sADCChannelName[recChIdx+1]
       # same with signal units
-      header$channel_units <- header$sADCUnits[recChIdx+1]
+      channelUnits <- header$sADCUnits[recChIdx+1]
    }
    
    # gain of telegraphed instruments, if any
@@ -370,9 +372,8 @@ readABF <- function (file) {
 
    headOffset <- header$lDataSectionPtr*BLOCKSIZE +
                      header$nNumPointsIgnored*dataSz
-   # header$fADCSampleInterval is the TOTAL sampling interval
-   # header$si is the sampling interval in us
-   header$si <- header$fADCSampleInterval * header$nADCNumChannels
+   samplingIntervalInSec <- header$nADCNumChannels *
+                              header$fADCSampleInterval * 1e-6 # converting to s
    nSweeps <- header$lActualEpisodes
    sweeps <- 1:nSweeps
 
@@ -387,12 +388,13 @@ readABF <- function (file) {
 
    # read in the TagSection, do a few computations & write to header$tags
    tags <- list()
+   TagSec <- list()
    for (i in seq(length.out=sections$TagSection$llNumEntries)) {
-      tmp <- Tag_info(sections$TagSection$uBlockIndex * BLOCKSIZE + 
+      tmp <- TagInfo(sections$TagSection$uBlockIndex * BLOCKSIZE + 
                               sections$TagSection$uBytes * (i-1))
       # time of tag entry from start of experiment in s (corresponding
       # expisode number, if applicable, will be determined later)
-      timeSinceRecStart <- if (header$fFileVersionNumber >= 2) {
+      timeSinceRecStartInSec <- if (header$fFileVersionNumber >= 2) {
          tmp$lTagTime * ProtocolSec$fADCSequenceInterval /
             (1e6 * sections$ADCSection$llNumEntries)
          # this part works like in abf2, not like in abfload.m, because
@@ -405,9 +407,10 @@ readABF <- function (file) {
          tmp$lTagTime * header$synchArrTimeBase / 1e6
       }
       tags[[i]] <- list(
-         timeSinceRecStart = timeSinceRecStart,
+         timeSinceRecStartInSec = timeSinceRecStartInSec,
          comment = paste(tmp$sComment, collapse="")
       )
+      TagSec[[i]] <- tmp
    }
 
 # -------------------------------------------------------------------------
@@ -444,8 +447,8 @@ readABF <- function (file) {
          d <- list()
          for (i in seq(length.out=nSweeps)) {
             # seq because sometimes nSweeps is 0
-            reader_function <- list(int16=int16, float32=float32)[[precision]]
-            tmpd <- reader_function(segLengthInPts[sweeps[i]])
+            readerFunction <- list(int16=int16, float32=float32)[[precision]]
+            tmpd <- readerFunction(segLengthInPts[sweeps[i]])
             n <- length(tmpd) # should be a multiple of header$nADCNumChannels
             if (n != segLengthInPts[sweeps[i]]) {
                warning("something went wrong while reading episode ", sweeps[i],
@@ -530,8 +533,8 @@ readABF <- function (file) {
       for (i in seq(length.out=nSweeps)) {
          # seq because sometimes nSweeps is 0
          seek(f, selectedSegStartInPts[i])
-         reader_function <- list(int16=int16, float32=float32)[[precision]]
-         tmpd <- reader_function(dataPtsPerSweep)
+         readerFunction <- list(int16=int16, float32=float32)[[precision]]
+         tmpd <- readerFunction(dataPtsPerSweep)
          n <- length(tmpd) # n should be a multiple of header$nADCNumChannels
          if (n != dataPtsPerSweep) {
             stop("something went wrong while reading episode ", sweeps[i],
@@ -566,11 +569,11 @@ readABF <- function (file) {
       # header$dataPts should be a multiple of header$nADCNumChannels
       
       # total length of recording, unit: seconds
-      total_length <- 1e-6 * header$lActualAcqLength * header$fADCSampleInterval
+      totalLength <- 1e-6 * header$lActualAcqLength * header$fADCSampleInterval
       
       # recording start and stop times in seconds from midnight
       header$recTime <- header$lFileStartTime
-      header$recTime <- c(header$recTime, header$recTime + total_length) 
+      header$recTime <- c(header$recTime, header$recTime + totalLength) 
       seek(f, headOffset)
 
       tmpd <- list(int16=int16, float32=float32)[[precision]](header$dataPts)
@@ -609,18 +612,27 @@ readABF <- function (file) {
    # finally, possibly add information on episode number to tags
    if (length(tags) > 0 && !is.null(header$sweepStartInPts)) {
      for (i in 1:length(tags)) {
-       tmp <- which(tags[[i]]$timeSinceRecStart >=
-                        header$sweepStartInPts / 1e6 * header$si)
+       tmp <- which(tags[[i]]$timeSinceRecStartInSec >=
+                        header$sweepStartInPts * samplingIntervalInSec)
        tags[[i]]$episodeIndex <- tmp[length(tmp)]
       }
    }
    
    result <- list(
       path = normalizePath(file),
-      format_version = sprintf("%.2f", header$fFileVersionNumber),
-      header = header,
+      formatVersion = sprintf("%.2f", header$fFileVersionNumber),
+      channelNames = channelNames,
+      channelUnits = channelUnits,
+      samplingIntervalInSec = samplingIntervalInSec,
       data = d,
-      tags = tags
+      tags = tags,
+      header = header,
+      # the following is intended to be only used in the rarest cases
+      # by users who know exactly what they want
+      sections = list(rawSections = sections,
+                      ADCsec = if (exists("ADCsec")) ADCsec,
+                      ProtocolSec = if (exists("ProtocolSec")) ProtocolSec,
+                      TagSec=TagSec)
    )
    class(result) <- "ABF"
    result

@@ -24,11 +24,8 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
 
    type <- match.arg(type)
 
-   si <- x$header$si # sampling interval (aka dt) in us
-   si <- si * 1e-6 # converting to s
-
    m <- x$data[[sweep]]
-   result <- data.frame(seq(0, by = si, length.out = nrow(m)))
+   result <- data.frame(seq(0, by = x$samplingIntervalInSec, length.out = nrow(m)))
    # If we provide a name "Time [s]" on data frame creation,
    # it becomes "Time..s." for some reason.
    # So we assign it after the data frame is created:
@@ -85,6 +82,7 @@ plot.ABF <- function (x, pch = ".", ..., sweep = 1, type = c("all", "one"),
 print.ABF <- function (x, ...) {
    cat("Path: ", x$path, "\n")
    cat("Format version: ", x$format_version, "\n")
+   cat("Sampling interval: ", x$samplingIntervalInSec, " s\n")
    cat("Channel names: ", x$header$channel_names, "\n")
    cat("Channel units: ", x$header$channel_units, "\n")
    cat("Number of sweeps: ", length(x$data), "\n")
