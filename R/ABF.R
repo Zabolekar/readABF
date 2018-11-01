@@ -1,7 +1,7 @@
-.column_name <- function (header, i) {
-   channel_name <- trimws(header$channel_names[i])
-   channel_unit <- trimws(header$channel_units[i])
-   paste0(channel_name, " [", channel_unit, "]")
+.columnName <- function (x, i) {
+   channelName <- trimws(x$channelNames[i])
+   channelUnit <- trimws(x$channelUnits[i])
+   paste0(channelName, " [", channelUnit, "]")
 }
 
 # this function can be applied to the return value of readABF
@@ -32,8 +32,8 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
    colnames(result) <- "Time [s]"
 
    if (type == "all") {
-      for(i in seq_along(x$header$channel_names)) {
-         name <- .column_name(x$header, i)
+      for(i in seq_along(x$channelNames)) {
+         name <- .columnName(x, i)
          result[[name]] <- m[,i]
       }
    } else { # type == "one"
@@ -41,7 +41,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
          stop('argument "channels" is required if type == "one"')
       }
       if (length(channels) == 1) {
-         name <- .column_name(x$header, channels)
+         name <- .columnName(x, channels)
          result[[name]] <- m[,channels]
 
       } else if (length(channels) == 2) {
@@ -51,18 +51,18 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
          # to calculate the conductance
          current <- channels[1]
          voltage <- channels[2]
-         current_unit <- trimws(x$header$channel_units[current])
-         voltage_unit <- trimws(x$header$channel_units[voltage])
+         currentUnit <- trimws(x$channelUnits[current])
+         voltageUnit <- trimws(x$channelUnits[voltage])
 
          if (is.null(unit)) {
-            unit <- paste0(current_unit, "/", voltage_unit)
+            unit <- paste0(currentUnit, "/", voltageUnit)
             # e.g. "pA/mV" (which means nanoSiemens)
          }
 
-         current_data <- m[,current]
-         voltage_data <- m[,voltage]
-         conductance_data <- current_data/voltage_data
-         result[[paste0("Data [", unit, "]")]] <- conductance_data
+         currentData <- m[,current]
+         voltageData <- m[,voltage]
+         conductanceData <- currentData/voltageData
+         result[[paste0("Data [", unit, "]")]] <- conductanceData
 
       } else {
          stop('argument "channels" should be of length 1 or 2')
@@ -80,12 +80,12 @@ plot.ABF <- function (x, pch = ".", ..., sweep = 1, type = c("all", "one"),
 }
 
 print.ABF <- function (x, ...) {
-   cat("Path: ", x$path, "\n")
-   cat("Format version: ", x$format_version, "\n")
-   cat("Sampling interval: ", x$samplingIntervalInSec, " s\n")
-   cat("Channel names: ", x$header$channel_names, "\n")
-   cat("Channel units: ", x$header$channel_units, "\n")
-   cat("Number of sweeps: ", length(x$data), "\n")
-   cat("Length of the first sweep: ", nrow(x$data[[1]]), "\n")
+   cat("Path:", x$path, "\n")
+   cat("Format version:", x$formatVersion, "\n")
+   cat("Sampling interval:", x$samplingIntervalInSec, "s\n")
+   cat("Channel names:", x$channelNames, "\n")
+   cat("Channel units:", x$channelUnits, "\n")
+   cat("Number of sweeps:", length(x$data), "\n")
+   cat("Length of the first sweep:", nrow(x$data[[1]]), "\n")
    invisible(x)
 }
