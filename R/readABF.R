@@ -408,7 +408,7 @@ readABF <- function (file) {
       }
       tags[[i]] <- list(
          timeSinceRecStartInSec = timeSinceRecStartInSec,
-         comment = paste(tmp$sComment, collapse="")
+         comment = trimws(paste(tmp$sComment, collapse=""))
       )
       TagSec[[i]] <- tmp
    }
@@ -618,11 +618,17 @@ readABF <- function (file) {
       }
    }
    
+   # The following is occasionally useful for dealing with characters like "µ".
+   # When the encoding isn't set correctly, weird things happen, especially in 
+   # combination with trimws.
+   Encoding(channelNames) <- "latin1"
+   Encoding(channelUnits) <- "latin1"
+
    result <- list(
       path = normalizePath(file),
       formatVersion = sprintf("%.2f", header$fFileVersionNumber),
-      channelNames = channelNames,
-      channelUnits = channelUnits,
+      channelNames = trimws(channelNames),
+      channelUnits = trimws(channelUnits),
       samplingIntervalInSec = samplingIntervalInSec,
       data = d,
       tags = tags,

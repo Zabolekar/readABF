@@ -1,7 +1,5 @@
 .columnName <- function (x, i) {
-   channelName <- trimws(x$channelNames[i])
-   channelUnit <- trimws(x$channelUnits[i])
-   paste0(channelName, " [", channelUnit, "]")
+   paste0(x$channelNames[i], " [", x$channelUnits[i], "]")
 }
 
 # this function can be applied to the return value of readABF
@@ -51,8 +49,8 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
          # to calculate the conductance
          current <- channels[1]
          voltage <- channels[2]
-         currentUnit <- trimws(x$channelUnits[current])
-         voltageUnit <- trimws(x$channelUnits[voltage])
+         currentUnit <- x$channelUnits[current]
+         voltageUnit <- x$channelUnits[voltage]
 
          if (is.null(unit)) {
             unit <- paste0(currentUnit, "/", voltageUnit)
