@@ -18,7 +18,7 @@ type = c("all", "one"), channels, unit = NULL)
   \item{type}{a string specifying the return value, see \sQuote{Value}.}
   \item{channels}{an integer vector of length one or two; required if \code{type == "one"}, otherwise ignored, see \sQuote{Value}.}
   \item{unit}{a string, specifying the unit of one, if \code{NULL} unit will be determined by units in \code{x};
-  ignored if \code{type == "all"}}
+  ignored if \code{type == "all"} or \code{length(channels) == 1}}
 }
 
 \value{A \code{data.frame}. The first column always contains the time which is calculated from the sampling interval.

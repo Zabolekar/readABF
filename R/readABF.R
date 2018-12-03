@@ -618,7 +618,7 @@ readABF <- function (file) {
       }
    }
    
-   # The following is occasionally useful for dealing with characters like "µ".
+   # The following is occasionally useful for dealing with the micro sign.
    # When the encoding isn't set correctly, weird things happen, especially in 
    # combination with trimws.
    Encoding(channelNames) <- "latin1"
@@ -632,9 +632,11 @@ readABF <- function (file) {
       samplingIntervalInSec = samplingIntervalInSec,
       data = d,
       tags = tags,
+      # the following is NOT the physical header, but rather
+      # a version-independent abstraction loosely based on the physical header:
       header = header,
       # the following is intended to be only used in the rarest cases
-      # by users who know exactly what they want
+      # by users who know exactly what they want:
       sections = list(rawSections = sections,
                       ADCsec = if (exists("ADCsec")) ADCsec,
                       ProtocolSec = if (exists("ProtocolSec")) ProtocolSec,
