@@ -20,12 +20,10 @@ channels, unit = NULL)
 }
 
 \examples{
-\dontrun{
-# loads "some_data.abf" and plots it
-r <- readABF("some_data.abf")
-plot(r)
+# loads an example file and plots its first sweep
+r <- readABF(system.file("extdata", "2009_01_19_0002_varlen_v18.abf", package="readABF"))
+plot(r, sweep=1)
 
 # leads to the same result
-plot(as.data.frame(r), pch = ".")
-}
+plot(as.data.frame(r, sweep=1), pch = ".")
 }

@@ -32,9 +32,7 @@ If \code{type == "one"}, the resulting data frame only contains the time (see ab
 }
 
 \examples{
-\dontrun{
-# loads "some_data.abf" and coerces it to data frame
-r <- readABF("some_data.abf")
-as.data.frame(r)
-}
+# loads an example file and coerces its first sweep to data frame
+r <- readABF(system.file("extdata", "2009_01_19_0002_varlen_v18.abf", package="readABF"))
+as.data.frame(r, sweep=1)
 }

@@ -12,9 +12,7 @@ Prints information about an \code{\link[=readABF]{ABF}} object and returns it in
   \item{...}{further arguments in case they are passed from other methods; they will be ignored.}
 }
 \examples{
-\dontrun{
-# loads "some_data.abf" and prints it
-r <- readABF("some_data.abf")
+# loads an example file and prints it
+r <- readABF(system.file("extdata", "2009_01_19_0002_varlen_v18.abf", package="readABF"))
 print(r)
-}
 }
