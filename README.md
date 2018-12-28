@@ -1,15 +1,19 @@
-[![Travis-CI Build Status](https://travis-ci.org/Zabolekar/readABF.svg?branch=master)](https://travis-ci.org/Zabolekar/readABF)
+[![Travis-CI Build Status](https://travis-ci.org/Zabolekar/readABF.svg?branch=master)](https://travis-ci.org/Zabolekar/readABF) [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/readABF)](https://cran.r-project.org/package=readABF)
 
 ## Installation
 
-The package can be installed as follows:
+The package can be installed from CRAN in the usual manner:
+
+```
+install.packages("readABF")
+```
+
+Alternatively, you can install the latest version from GitHub:
 
 ```
 library(devtools)
 install_github("Zabolekar/readABF")
 ```
-
-It will be also submitted to CRAN soon.
 
 ## Usage
 
@@ -27,12 +31,12 @@ plot(r)
 
 ## Tests
 
-As you can notice, the `tests/` directory is not published. This has two reasons:
+As you can notice, our `tests/` directory is not published, neither on GitHub nor on CRAN. This has two reasons:
 
 - our test data is hundreds of megabytes large.
-- we do not have the permission to share most of our test data.
+- we do not have the permission to share some of our test data.
 
-Currently, code is tested under Linux only. This package is tested with the following combinations of file format versions and operation modes (each with multiple data sets):
+This package is tested (currently only under Linux) with the following combinations of file format versions and operation modes (each with multiple data sets):
 
 |    |variable-length event-driven|fixed-length event-driven|gap-free|episodic stimulation|
 |----|:--------------------------:|:-----------------------:|:------:|:------------------:|
