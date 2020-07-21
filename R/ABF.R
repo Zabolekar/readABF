@@ -23,7 +23,7 @@ as.data.frame.ABF <- function (x, row.names = NULL, optional = FALSE, ...,
    type <- match.arg(type)
 
    m <- x$data[[sweep]]
-   result <- data.frame(seq(0, by = x$samplingIntervalInSec, length.out = nrow(m)))
+   result <- data.frame(seq(x$samplingIntervalInSec, by = x$samplingIntervalInSec, length.out = nrow(m)))
    # If we provide a name "Time [s]" on data frame creation,
    # it becomes "Time..s." for some reason.
    # So we assign it after the data frame is created:

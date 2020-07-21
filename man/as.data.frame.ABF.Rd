@@ -22,7 +22,7 @@ type = c("all", "one"), channels, unit = NULL)
 }
 
 \value{A \code{data.frame}. The first column always contains the time which is calculated from the sampling interval.
-The earliest data point is believed to be at time 0.
+The earliest data point is believed to be at time 1 divided by the sampling rate.
 
 Column names are accompanied by their units.
 

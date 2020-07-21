@@ -1,0 +1,10 @@
+2020-07-14 Florian Pein, version 1.0-2
+
+  * as.data.frame.ABF: Time [s] starts now at x$samplingIntervalInSec, i.e. at 1 divided by the sampling rate
+                       (to ensure that the same definition is used in the clampSeg package)
+
+  * added ChangeLog file
+
+2018-12-18 Stanislav Syekirin, version 1.0-1
+
+  * initial version
